@@ -4,7 +4,7 @@ Project work for **Data Visualization Methods (INMAA0105L-01/26f)**, University 
 
 ## Team
 - Gilbert Mutai
-- <Colleague 1>
+- Aviral Birthare
 - <Colleague 2>
 
 ## Overview
