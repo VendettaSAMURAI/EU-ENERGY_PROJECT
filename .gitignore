@@ -18,8 +18,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Data: uncomment if raw data is too large to commit
-# data/raw/*
-# data/interim/*
-# data/processed/*
-# !data/**/.gitkeep
+# Data: not committed, reproducible via scripts in src/data/
+# (files already tracked, e.g. the Eurostat CSV, stay tracked)
+data/raw/*
+data/interim/*
+data/processed/*
+!data/**/.gitkeep
