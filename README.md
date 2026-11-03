@@ -5,7 +5,7 @@ Project work for **Data Visualization Methods (INMAA0105L-01/26f)**, University 
 ## Team
 - Gilbert Mutai
 - Aviral Birthare
-- <Colleague 2>
+- Venkatachalamoorthy Jagadish
 
 ## Overview
 <One paragraph: what the dashboard explores and why.>
