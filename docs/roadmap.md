@@ -18,24 +18,25 @@ Deadline / presentation date: _TBD_
 
 ## Phase 1: Data contract and acquisition
 - [x] **A** Test Energy-Charts API endpoints (load, generation by source, day-ahead prices) for one country
-- [ ] **A** Decide bidding zone to country mapping (DE-LU, DK1/DK2) and write it down
-- [ ] **All** Write `docs/data_contract.md`: processed file names, columns, dtypes, units, time zone
+- [x] **A** Decide bidding zone to country mapping (DE-LU, DK1/DK2) and write it down
+- [x] **All** Write `docs/data_contract.md`: processed file names, columns, dtypes, units, time zone
 - [x] **A** Download script for Energy-Charts -> `data/raw/energy_charts/`
 - [ ] **A** Download script for Ember yearly/monthly data -> `data/raw/ember/`
 - [ ] **A** Download script for Eurostat population -> `data/raw/eurostat/`
 - [x] **A** Move the existing Eurostat renewables file into `data/raw/eurostat/`
 - [ ] **A** Replace the manual Eurostat renewables download with a script
-- [ ] **A** Deliver a rough sample of processed data so B and C can start
+- [x] **A** Deliver a rough sample of processed data so B and C can start
 
 ## Phase 2: Cleaning and derived variables
-- [ ] **A** Convert timestamps to UTC, handle DST gaps/duplicates
-- [ ] **A** Resample 15-min and hourly series to one common resolution
-- [ ] **A** Harmonise units (MW vs MWh) and aggregate correctly
-- [ ] **A** Handle gaps and outliers (keep negative prices, they are real)
-- [ ] **A** Derived variables: renewable share, residual load, peak/off-peak flag, season, per-capita consumption
-- [ ] **A** Merge sources on country + time, save Parquet to `data/processed/`
-- [ ] **A** Document every prep step in `docs/data_preparation.md` (needed for the defense)
-- [ ] **A** Basic tests in `tests/` (no duplicate timestamps, expected columns, sensible ranges)
+- [x] **A** Convert timestamps to UTC, handle DST gaps/duplicates
+- [x] **A** Resample 15-min and hourly series to one common resolution
+- [x] **A** Harmonise units (MW vs MWh) and aggregate correctly
+- [x] **A** Handle gaps and outliers (keep negative prices, they are real)
+- [x] **A** Derived variables: renewable share, residual load, peak/off-peak flag, season
+- [ ] **A** Per-capita consumption (needs Eurostat population)
+- [x] **A** Merge sources on country + time, save Parquet to `data/processed/`
+- [x] **A** Document every prep step in `docs/data_preparation.md` (needed for the defense)
+- [x] **A** Basic tests in `tests/` (no duplicate timestamps, expected columns, sensible ranges)
 
 ## Phase 3: Visualizations (`src/viz/`)
 - [ ] **B** Pick palette and shared styling (dark SaaS theme), one style module used by all charts
