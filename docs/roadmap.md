@@ -58,8 +58,8 @@ Deadline / presentation date: _TBD_
 - [ ] **C** Stability check: `panel serve dashboard/app.py --show` runs on a clean clone
 
 ## Phase 5: Documentation and presentation
-- [ ] **All** Update README: overview, questions, data sources table with licences and access dates, how to run
-- [ ] **All** Write down key insights per analytical question
+- [x] **All** Update README: overview, questions, data sources table with licences and access dates, how to run
+- [x] **All** Write down key insights per analytical question
 - [ ] **All** Slides in `docs/`: dataset, data prep, design decisions, demo flow, insights
 - [ ] **All** Each member rehearses their part plus a full demo
 - [ ] **All** Final check against `docs/project_brief.md` (minimum requirements and assessment criteria)
