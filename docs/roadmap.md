@@ -39,11 +39,12 @@ Deadline / presentation date: _TBD_
 - [x] **A** Basic tests in `tests/` (no duplicate timestamps, expected columns, sensible ranges)
 
 ## Phase 3: Visualizations (`src/viz/`)
-- [ ] **B** Pick palette and shared styling (dark SaaS theme), one style module used by all charts
-- [ ] **B** Q1 Demand patterns: hour x weekday heatmap, calendar heatmap, seasonal hour-of-day profiles
-- [ ] **B** Q2 Country comparison: choropleth map, ranked dot/lollipop chart, generation mix per country
-- [ ] **B** Q3 Renewables: stacked area/streamgraph of generation mix, renewables vs demand overlay
-- [ ] **B** Q4 Prices: violin/ridgeline per country, price duration curve, renewable share vs price scatter
+- [x] **B** Pick palette and shared styling (dark SaaS theme), one style module used by all charts
+- [x] **B** Q1 Demand patterns: hour x weekday heatmap, calendar heatmap, seasonal hour-of-day profiles
+- [x] **B** Q2 Country comparison: choropleth map, ranked dot/lollipop chart, generation mix per country
+  - [ ] **B** Per-capita view: `countries.*(population=...)` is ready, switch on once **A** delivers Eurostat population
+- [x] **B** Q3 Renewables: stacked area/streamgraph of generation mix, renewables vs demand overlay
+- [x] **B** Q4 Prices: violin/ridgeline per country, price duration curve, renewable share vs price scatter
 - [ ] **B** Check every chart answers one analytical question; drop any that do not
 
 ## Phase 4: Dashboard (`dashboard/app.py`)
