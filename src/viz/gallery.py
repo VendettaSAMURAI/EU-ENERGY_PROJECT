@@ -4,10 +4,18 @@ Output: reports/figures/chart_gallery.html (standalone, opens in any browser,
 fully interactive: hover, zoom, pan). Useful for reviewing the charts before
 the dashboard exists, and as a backup for the presentation.
 
+Licence note: Spain's day-ahead prices come from EPEX SPOT via Energy-Charts
+and are licensed for private and internal use only, including derived data.
+Because this file is committed to a public repository, Spain is left out of
+the price charts (Q4) by default. For a local, non-public copy with all
+countries (e.g. for the presentation), run with --all-prices.
+
 Run from anywhere:
-    python src/viz/gallery.py
+    python src/viz/gallery.py                # committed version, no Spain prices
+    python src/viz/gallery.py --all-prices   # local only, do not commit
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -21,6 +29,8 @@ import panel as pn  # noqa: E402
 from src.viz import countries, demand, prices, renewables, style  # noqa: E402
 
 OUT = REPO_ROOT / "reports" / "figures" / "chart_gallery.html"
+# Price zones whose licence does not allow publishing derived data
+RESTRICTED_PRICE_COUNTRIES = ["ES"]
 
 
 def section(title, text, *rows):
@@ -34,6 +44,11 @@ def solo(chart):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Build the chart gallery.")
+    parser.add_argument("--all-prices", action="store_true",
+                        help="include Spain in the price charts (local use only, do not commit)")
+    all_prices = parser.parse_args().all_prices
+
     pn.extension(theme="dark")
     hv.extension("bokeh")
     style.apply()
@@ -41,6 +56,12 @@ def main():
     df = pd.read_parquet(REPO_ROOT / "data" / "processed" / "electricity_hourly.parquet")
     hu, de = df[df.country == "HU"], df[df.country == "DE"]
     y25 = df[df.year == 2025]
+    # Data for the price charts (Q4)
+    pdf = df if all_prices else df[~df.country.isin(RESTRICTED_PRICE_COUNTRIES)]
+    p25 = pdf[pdf.year == 2025]
+    price_note = ("All seven countries." if all_prices else
+                  "Spain is not shown here: its price data (EPEX SPOT) is licensed for private and "
+                  "internal use only, and this page is published in a public repository.")
     de_week = de[(de.timestamp_local >= "2024-06-03") & (de.timestamp_local < "2024-06-10")]
 
     q1 = section(
@@ -67,15 +88,15 @@ def main():
     )
     q4 = section(
         "Q4: Do hours with more renewables have lower prices?",
-        "",
-        pn.Row(solo(prices.price_distribution(y25, title="2025: price distribution by country")),
-               solo(prices.price_distribution(df, by="year"))),
+        price_note,
+        pn.Row(solo(prices.price_distribution(p25, title="2025: price distribution by country")),
+               solo(prices.price_distribution(pdf, by="year"))),
         pn.Row(solo(prices.share_price(de[de.year == 2025], title="Germany 2025: renewable share vs price")),
-               solo(prices.share_price(y25, title="2025: renewable share vs price"))),
-        pn.Row(solo(prices.share_price(y25, x="residual_load", title="2025: residual load vs price")),
-               solo(prices.price_duration_curve(y25, title="2025: price duration curve"))),
-        solo(prices.negative_price_heatmap(y25, title="2025: negative prices by hour of day")),
-        solo(prices.negative_price_heatmap(df, by="month")),
+               solo(prices.share_price(p25, title="2025: renewable share vs price"))),
+        pn.Row(solo(prices.share_price(p25, x="residual_load", title="2025: residual load vs price")),
+               solo(prices.price_duration_curve(p25, title="2025: price duration curve"))),
+        solo(prices.negative_price_heatmap(p25, title="2025: negative prices by hour of day")),
+        solo(prices.negative_price_heatmap(pdf, by="month")),
     )
 
     intro = pn.pane.Markdown(
