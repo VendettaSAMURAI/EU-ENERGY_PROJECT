@@ -8,6 +8,7 @@ panel>=1.5
 holoviews>=1.19
 hvplot>=0.10
 bokeh>=3.4
+scipy>=1.11      # kernel density for violin plots (HoloViews Violin)
 
 # Notebooks
 jupyterlab>=4.2
