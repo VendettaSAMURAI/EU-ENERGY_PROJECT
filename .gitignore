@@ -24,3 +24,6 @@ data/raw/*
 data/interim/*
 data/processed/*
 !data/**/.gitkeep
+
+# Generated chart gallery: rebuild with python src/viz/gallery.py
+reports/figures/chart_gallery.html
