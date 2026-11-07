@@ -25,10 +25,12 @@ Findings per analytical question, with the chart that shows each one. All number
 
 ## Q4: Do hours with more renewables have lower prices?
 
-- **Yes, in every country.** The correlation between hourly renewable share and price in 2025 is negative everywhere: Germany −0.82, Spain −0.76, Poland −0.69, France −0.64, Austria −0.61, Hungary −0.59, Denmark −0.47.
+Spain is left out of this question: its day-ahead prices (EPEX SPOT via Energy-Charts) are licensed for private and internal use only, including derived figures, and this repository is public. All price figures below cover the other six countries.
+
+- **Yes, in every country.** The correlation between hourly renewable share and price in 2025 is negative everywhere: Germany −0.82, Poland −0.69, France −0.64, Austria −0.61, Hungary −0.59, Denmark −0.47.
 - **Germany 2025:** the median price falls from about 165 EUR/MWh in hours with ~12% renewables to 74 at ~72%, 4 at ~92%, and about zero above 100%. *Renewable share vs price, Germany selected.*
 - **France reaches very low prices at much lower renewable shares:** 92 EUR/MWh at ~22%, 15 at ~42%, 3 at ~52%. Likely reason: nuclear already covers most of the remaining demand, so little expensive generation is needed.
 - **Denmark reacts least:** its median price only falls from about 107 to 68 EUR/MWh across the whole range and does not reach zero. A likely reason (not shown in our data) is its strong interconnection with neighbouring markets, which absorbs surplus wind power.
 - **Residual load explains prices even better** (load minus wind and solar, correlation with price +0.58 in Denmark to +0.87 in Germany): the more demand is left for controllable plants, the more expensive plants set the price (merit order). *`share_price(x="residual_load")`.*
-- **Negative prices are a solar effect and growing fast.** Share of hours with negative prices, 2022 → 2025: Germany 0.8% → 6.6%, Spain 0% → 6.3%, France 0% → 5.9%, Austria 0% → 4.3%. In 2025 they cluster at midday (on average 20% of all 13:00 hours across the seven countries, 27% in Germany) and in spring; the extreme was Spain in May 2025 with 32% of hours. *Negative-price heatmaps.*
-- **Price level:** the median price fell from 199 EUR/MWh in 2022 (energy crisis) to 100 in 2023 and 79 in 2024, then rose slightly to 92 in 2025. *Price distribution by year.*
+- **Negative prices are a solar effect and growing fast.** Share of hours with negative prices, 2022 → 2025: Germany 0.8% → 6.6%, France 0% → 5.9%, Austria 0% → 4.3%. In 2025 they cluster at midday (on average 20% of all 13:00 hours across the six countries, 27% in Germany) and in late spring and early summer; the highest month was June 2025 in Germany with 20% of hours. *Negative-price heatmaps.*
+- **Price level:** the median price fell from 207 EUR/MWh in 2022 (energy crisis) to 100 in 2023 and 80 in 2024, then rose slightly to 95 in 2025. *Price distribution by year.*
