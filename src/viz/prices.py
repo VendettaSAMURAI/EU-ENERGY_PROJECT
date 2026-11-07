@@ -220,7 +220,7 @@ def share_price(df, x="renewable_share", title=None):
                             ("Middle 50%", "@q25{0,0} to @q75{0,0} EUR/MWh"), ("Hours", "@hours{0,0}")],
         ))
     return hv.Overlay(layers).opts(
-        title=f"{title} (shading: number of hours; lines: median price)",
+        title=f"{title} (line: median price)",
         xlabel=xlabel,
         ylabel="Day-ahead price (EUR/MWh)",
         xlim=xlim,

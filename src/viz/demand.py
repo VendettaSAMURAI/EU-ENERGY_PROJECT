@@ -144,7 +144,8 @@ def calendar_heatmap(df, relative=None, title="Daily electricity consumption"):
             xlabel="",
             xaxis="bottom" if last else None,
             xticks=month_ticks,
-            height=150 + (60 if last else 0) + (30 if i == 0 else 0),
+            # The last year also holds the month axis and the colour bar
+            height=150 + (115 if last else 0) + (30 if i == 0 else 0),
             tools=["hover"],
             hover_tooltips=[("", "@label"), (vdim.label, f"@value{fmt}")],
             line_color=style.SURFACE,
@@ -208,8 +209,7 @@ def seasonal_profile(df, relative=None, title="Daily load profile by season"):
         title=title,
         xlabel="Hour of day (local time)",
         ylabel=f"{vdim.label} ({vdim.unit})",
-        xlim=(0, 25.5),
+        xlim=(0, 26.5),
         xticks=[(h, f"{h:02d}") for h in range(0, 24, 3)],
-        show_legend=True,
-        legend_position="top_left",
+        show_legend=False,
     )
