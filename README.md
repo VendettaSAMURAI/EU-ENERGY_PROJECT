@@ -10,18 +10,20 @@ Project work for **Data Visualization Methods (INMAA0105L-01/26f)**, MSc Data Sc
 - Venkatachalamoorthy Jagadish
 
 ## Overview
-Europe's power system is changing fast: the 2022 energy crisis sent prices to record highs, solar and wind keep growing, and hours with negative prices have become common. This dashboard lets users explore that change hour by hour for **Hungary, Germany, Austria, France, Spain, Poland and Denmark**. The countries cover very different systems (hydro in Austria, nuclear in France, coal in Poland, wind in Denmark and Germany, solar in Spain, and Hungary as our host country). The period **2022 to 2025** spans the crisis, the recovery and the solar boom. Users can filter by country and time, and compare demand patterns, generation mix, renewable coverage and prices from several perspectives.
+Europe’s power system is changing fast. The 2022 energy crisis pushed prices to record highs, solar and wind capacity keeps growing, and hours with negative prices have become common. This dashboard lets you explore the European renewable energy transition hour by hour, from 2022 to 2025, a period that spans the crisis, the recovery and the solar boom to the all renewable energy resources including thermal , nuclear & wind energy.
+
+To capture the diversity of Europe’s power systems, the analysis uses seven representative countries: Hungary (our host country) and all 27 nations of European union.
 
 ## Analytical Questions
-1. **Demand patterns:** How does electricity demand vary by hour, weekday and season, and when are the peaks?
-2. **Country comparison:** How do the countries differ in consumption and generation mix?
-3. **Renewables:** How has the renewable share evolved, and how well does renewable generation cover demand?
-4. **Prices:** Do hours with high renewable generation have lower (or negative) prices, and does this differ by country?
+1.Demand patterns: How does electricity demand vary by hour, weekday and season across Europe, and when do the peaks occur?
+2.Country comparison: How do different power systems (hydro, nuclear, coal, wind, solar) differ in consumption and generation mix?
+3.Renewables: How has the renewable share of generation grown across Europe from 2022 to 2025, and how well does renewable output cover demand?
+4.Prices: Do hours with high renewable generation have lower or negative prices, and how does this relationship differ between countries?
 
 Key findings per question: [docs/insights.md](docs/insights.md).
 
 ## Visualizations
-Built with the PyViz stack (**Panel, HoloViews, hvPlot, Bokeh**). Chart types were chosen per question, not for variety:
+Built with the PyViz stack (** Bokeh**). Chart types were chosen per question, not for variety:
 
 | Question | Charts |
 |---|---|
