@@ -1,4 +1,4 @@
-# EU Electricity Dashboard
+# European Union Renewable Energy Dashboard 
 
 Interactive dashboard on electricity demand, generation mix, renewables and prices in seven EU countries, 2022 to 2025.
 
