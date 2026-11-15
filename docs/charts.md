@@ -34,6 +34,13 @@ pn.Column(pn.Row(country, years), heatmap).servable()
 
 Then run `panel serve dashboard/app.py --show`.
 
+To look at a single chart on its own, without the dashboard:
+
+```bash
+python src/viz/preview.py                  # list all chart names
+python src/viz/preview.py country_map      # open one chart in the browser
+```
+
 ## Conventions (all chart functions)
 
 - **Input:** the hourly DataFrame from `electricity_hourly.parquet`, already filtered by the dashboard (countries, date range, season, ...). Charts never filter by themselves.
