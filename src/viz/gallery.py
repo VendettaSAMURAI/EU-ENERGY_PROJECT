@@ -99,14 +99,11 @@ def main():
         solo(prices.negative_price_heatmap(pdf, by="month")),
     )
 
-    intro = pn.pane.Markdown(
-        "# EU Electricity Dashboard: chart gallery\n"
-        "Every chart from `src/viz/`, built on `data/processed/electricity_hourly.parquet`. "
-        "Hover for values; use the toolbar to zoom and pan. Data: Energy-Charts (Fraunhofer ISE), "
-        "Eurostat GISCO (© EuroGeographics).",
+    heading = pn.pane.Markdown(
+        "# EU Electricity Dashboard: chart gallery",
         styles={"color": style.TEXT}, margin=(10, 10),
     )
-    page = pn.Column(intro, q1, q2, q3, q4, sizing_mode="stretch_width",
+    page = pn.Column(heading, q1, q2, q3, q4, sizing_mode="stretch_width",
                      styles={"background": style.PAGE, "padding": "16px"})
     OUT.parent.mkdir(parents=True, exist_ok=True)
     page.save(OUT, title="Chart gallery", resources="inline")
