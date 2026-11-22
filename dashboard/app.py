@@ -157,8 +157,8 @@ st.markdown(f"""
     }}
     div[class*="st-key-nav"] [data-testid="stRadio"], div[class*="st-key-nav"] [data-testid="stElementContainer"] {{ display: flex; justify-content: center; width: 100%; }}
     div[class*="st-key-nav"] label {{ white-space: nowrap; }}
-    /* hide only the radio circle: anything inside the label that is not the text (and not the input) */
-    div[class*="st-key-nav"] label > *:not(input):not([data-testid="stMarkdownContainer"]):not(:has([data-testid="stMarkdownContainer"])) {{ display: none !important; }}
+    /* hide the radio circle: every descendant of the label that is neither the text, inside the text, nor a parent of it */
+    div[class*="st-key-nav"] label *:not(input):not([data-testid="stMarkdownContainer"]):not([data-testid="stMarkdownContainer"] *):not(:has([data-testid="stMarkdownContainer"])) {{ display: none !important; }}
     div[class*="st-key-nav"] label [data-testid="stMarkdownContainer"] {{ display: block !important; }}
     div[class*="st-key-nav"] label p {{ color: {APPLE_MUTED} !important; font-size: 13px; font-weight: 500; margin: 0; }}
     div[class*="st-key-nav"] label:hover p {{ color: {APPLE_TEXT} !important; }}
@@ -711,22 +711,46 @@ if "countries" not in st.session_state:
 else:
     st.session_state["countries"] = [c for c in st.session_state["countries"] if c in COUNTRIES]
 
-# Year / metric / target live in the sidebar AND in a slim bar on the Overview tab, so they are
-# still reachable when the sidebar is closed. The two copies are kept in sync by callbacks.
-st.session_state.setdefault("year_val", LATEST)
-st.session_state.setdefault("year_main", st.session_state["year_val"])
-st.session_state.setdefault("metric_val", list(MAP_METRICS.keys())[0])
-st.session_state.setdefault("metric_main", st.session_state["metric_val"])
-st.session_state.setdefault("target_val", 32)
-st.session_state.setdefault("target_main", st.session_state["target_val"])
+# Year / metric / target / countries are controlled from the sidebar AND from the bar under the menu
+# (so they stay reachable when the sidebar is closed). One value in session_state is the source of truth.
+import zlib
+st.session_state.setdefault("S_year", LATEST)
+st.session_state.setdefault("S_metric", list(MAP_METRICS.keys())[0])
+st.session_state.setdefault("S_target", 32)
+if st.session_state["S_year"] not in YEARS:
+    st.session_state["S_year"] = LATEST
+if st.session_state["S_metric"] not in MAP_METRICS:
+    st.session_state["S_metric"] = list(MAP_METRICS.keys())[0]
 
-def _mirror(src_key, dst_key):
+def _wkey(tag, skey):
+    # the key contains the current value: when the value changes the widget is rebuilt with it,
+    # so both copies (sidebar + main bar) always show the same value.
+    return f"{tag}_{skey}_{zlib.crc32(str(st.session_state[skey]).encode())}"
+
+def _commit(skey, wkey):
     def _cb():
-        st.session_state[dst_key] = st.session_state[src_key]
+        st.session_state[skey] = st.session_state[wkey]
     return _cb
 
+def synced_slider(where, label, skey, tag, collapsed=False, **kw):
+    wkey = _wkey(tag, skey)
+    return where.slider(label, value=st.session_state[skey], key=wkey, on_change=_commit(skey, wkey),
+                        label_visibility="collapsed" if collapsed else "visible", **kw)
+
+def synced_select(where, label, skey, tag, options, collapsed=False):
+    wkey = _wkey(tag, skey)
+    idx = options.index(st.session_state[skey]) if st.session_state[skey] in options else 0
+    return where.selectbox(label, options=options, index=idx, key=wkey, on_change=_commit(skey, wkey),
+                           label_visibility="collapsed" if collapsed else "visible")
+
+# country selection: sidebar multiselect (key "countries") is the source, the main-bar copy follows it
+st.session_state["countries_main"] = list(st.session_state["countries"])
+
+def _main_to_side():
+    st.session_state["countries"] = list(st.session_state["countries_main"])
+
 def _set_top_leaders():
-    yr = st.session_state.get("year_val", LATEST)
+    yr = st.session_state["S_year"]
     top = (
         d_all[(d_all["year"] == yr) & d_all["renewable_share_pct"].notna()]
         .sort_values("renewable_share_pct", ascending=False)["country"].head(5).tolist()
@@ -748,14 +772,14 @@ def _clear_all():
 with st.sidebar:
     st.markdown("<div class='side-title'>Snapshot & Target</div>", unsafe_allow_html=True)
 
-    st.markdown(f"<div class='side-label'>Year (Map & Ranking): <b>{st.session_state.get('year_val', LATEST)}</b></div>", unsafe_allow_html=True)
-    year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], key="year_val", label_visibility="collapsed", on_change=_mirror("year_val", "year_main"))
+    st.markdown(f"<div class='side-label'>Year (Map & Ranking): <b>{st.session_state['S_year']}</b></div>", unsafe_allow_html=True)
+    synced_slider(st, "Year (Map & Ranking)", "S_year", "sb", collapsed=True, min_value=YEARS[0], max_value=YEARS[-1])
 
     st.markdown("<div class='side-label' style='margin-top:14px;'>Map & Ranking Metric</div>", unsafe_allow_html=True)
-    metric_val = st.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_val", label_visibility="collapsed", on_change=_mirror("metric_val", "metric_main"))
+    synced_select(st, "Map & Ranking Metric", "S_metric", "sb", list(MAP_METRICS.keys()), collapsed=True)
 
-    st.markdown(f"<div class='side-label' style='margin-top:14px;'>Policy Target Benchmark (%): <b>{st.session_state.get('target_val', 32)}</b></div>", unsafe_allow_html=True)
-    target_val = st.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, key="target_val", label_visibility="collapsed", on_change=_mirror("target_val", "target_main"))
+    st.markdown(f"<div class='side-label' style='margin-top:14px;'>Policy Target Benchmark (%): <b>{st.session_state['S_target']}</b></div>", unsafe_allow_html=True)
+    synced_slider(st, "Policy Target Benchmark (%)", "S_target", "sb", collapsed=True, min_value=10, max_value=65)
 
     st.markdown("---")
     st.markdown("<div class='side-title'>Comparison</div>", unsafe_allow_html=True)
@@ -798,12 +822,22 @@ NAV_ITEMS = ["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Dat
 with st.container(key="nav"):
     nav = st.radio("View", NAV_ITEMS, horizontal=True, key="nav_tab", label_visibility="collapsed")
 
+# values used by every view (read AFTER the widgets above so callbacks are already applied)
+year_val = st.session_state["S_year"]
+metric_val = st.session_state["S_metric"]
+target_val = st.session_state["S_target"]
+selected_countries = list(st.session_state["countries"])
+
+with st.container(key="card-controls"):
+    st.multiselect("Select countries — every chart, map and table follows this selection", options=COUNTRIES,
+                   key="countries_main", on_change=_main_to_side)
+    if nav == "Overview":
+        k1, k2, k3 = st.columns(3, gap="medium")
+        synced_slider(k1, "Year (Map & Ranking)", "S_year", "mn", min_value=YEARS[0], max_value=YEARS[-1])
+        synced_select(k2, "Map & Ranking Metric", "S_metric", "mn", list(MAP_METRICS.keys()))
+        synced_slider(k3, "Policy Target Benchmark (%)", "S_target", "mn", min_value=10, max_value=65)
+
 if nav == "Overview":
-    with st.container(key="card-controls"):
-        k1, k2, k3 = st.columns([2, 2, 2], gap="medium")
-        k1.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], key="year_main", on_change=_mirror("year_main", "year_val"))
-        k2.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_main", on_change=_mirror("metric_main", "metric_val"))
-        k3.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, key="target_main", on_change=_mirror("target_main", "target_val"))
     col_map, col_bar = st.columns([2, 1], gap="medium")
     with col_map:
         with st.container(key="card-map"):
