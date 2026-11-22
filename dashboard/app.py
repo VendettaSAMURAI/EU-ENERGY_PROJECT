@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ----------------------------------------------------------------------------
-# Page Configuration & Apple Dark Theme Styling (Matching Panel.py)
+# Page Configuration & Apple Dark Theme Styling
 # ----------------------------------------------------------------------------
 st.set_page_config(
     page_title="EU Renewable Energy Observatory",
@@ -36,11 +36,13 @@ st.markdown(f"""
         color: {APPLE_TEXT};
         font-family: {APPLE_FONT};
         -webkit-font-smoothing: antialiased;
-        letter-spacing: -0.011em;
     }}
     [data-testid="stSidebar"] {{
-        background-color: rgba(20, 20, 22, 0.98);
+        background-color: #141416;
         border-right: 1px solid {APPLE_BORDER};
+    }}
+    [data-testid="stVerticalBlock"] > div {{
+        background-color: transparent !important;
     }}
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
@@ -55,14 +57,12 @@ st.markdown(f"""
         border-radius: 980px;
         color: {APPLE_MUTED};
         font-weight: 500;
-        padding: 7px 18px;
-        font-size: 13px;
+        padding: 6px 18px;
     }}
     .stTabs [aria-selected="true"] {{
         background-color: {APPLE_CARD_ELEVATED} !important;
         color: {APPLE_TEXT} !important;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }}
     div.stButton > button {{
         border-radius: 980px;
@@ -72,8 +72,7 @@ st.markdown(f"""
         width: 100%;
         font-weight: 500;
         font-size: 12px;
-        padding: 6px 10px;
-        transition: transform 0.15s ease, background-color 0.15s ease;
+        transition: transform 0.15s ease;
     }}
     div.stButton > button:hover {{
         border-color: rgba(255, 255, 255, 0.25);
@@ -84,7 +83,6 @@ st.markdown(f"""
         color: #FFFFFF;
         border-color: {APPLE_BLUE};
     }}
-    /* Apple Bento Card Container */
     .apple-bento {{
         background: {APPLE_CARD};
         border: 1px solid {APPLE_BORDER};
@@ -93,9 +91,6 @@ st.markdown(f"""
         box-sizing: border-box;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
         margin-bottom: 16px;
-    }}
-    .apple-bento:hover {{
-        border-color: rgba(255, 255, 255, 0.18);
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -136,7 +131,7 @@ mtrend = load_viz_module("multitrend_list_chart", "multitrend list chart.py")
 obox = load_viz_module("outlier_box_plot", "Outlier box plot.py")
 
 # ----------------------------------------------------------------------------
-# Data Loading & Auto-Generation for Cloud Deployment
+# Data Loading & Auto-Generation for Cloud Deployment (2016–2025)
 # ----------------------------------------------------------------------------
 def find_csv():
     search_dirs = [HERE, PROJECT_ROOT, os.path.join(PROJECT_ROOT, "data"), os.path.join(PROJECT_ROOT, "data", "raw"), os.path.join(PROJECT_ROOT, "data", "processed")]
@@ -164,6 +159,7 @@ def load_dataset():
             df_loaded["is_aggregate"] = df_loaded["geo_code"].astype(str).str.startswith(("EU", "EA"))
         return df_loaded, False
 
+    # Fallback Data Generator up to 37 nations and 2016-2025
     rng = np.random.default_rng(7)
     countries = [
         ("Sweden", "SE"), ("Finland", "FI"), ("Latvia", "LV"), ("Denmark", "DK"),
@@ -172,12 +168,15 @@ def load_dataset():
         ("Slovenia", "SI"), ("Bulgaria", "BG"), ("Germany", "DE"), ("Italy", "IT"),
         ("France", "FR"), ("Slovakia", "SK"), ("Czechia", "CZ"), ("Poland", "PL"),
         ("Hungary", "HU"), ("Netherlands", "NL"), ("Belgium", "BE"), ("Ireland", "IE"),
-        ("Luxembourg", "LU"), ("Malta", "MT"),
+        ("Luxembourg", "LU"), ("Malta", "MT"), ("Norway", "NO"), ("Iceland", "IS"),
+        ("Switzerland", "CH"), ("Montenegro", "ME"), ("Serbia", "RS"), ("Albania", "AL"),
+        ("North Macedonia", "MK"), ("Bosnia and Herzegovina", "BA"), ("Turkey", "TR"),
+        ("United Kingdom", "UK"), ("Cyprus", "CY")
     ]
-    years = list(range(2015, 2024))
+    years = list(range(2016, 2026))
     rows = []
     for idx, (c, code) in enumerate(countries):
-        base = 52 - idx * 1.6
+        base = 52 - (idx * 1.0)
         for y_i, y in enumerate(years):
             val = max(4.5, round(base + y_i * rng.uniform(0.5, 1.4), 2))
             rows.append({"country": c, "geo_code": code, "year": y, "renewable_share_pct": val, "data_flag": "Demo", "is_aggregate": False})
@@ -282,7 +281,7 @@ def build_map_with_target(year, metric_name, selected, target_pct):
         title_text = f"<b>EUROPEAN RENEWABLE ENERGY SHARE · {year}</b>"
         if target_pct > 0:
             title_text += f"<br><span style='font-size:12.5px;color:{APPLE_GREEN};font-weight:500;'>Policy Target ({target_pct}%): {met_cnt}/{tot_cnt} nations above target</span>"
-        fig.update_layout(title=dict(text=title_text, x=0.5, xanchor="center", font=dict(size=16)), height=850)
+        fig.update_layout(title=dict(text=title_text, x=0.5, xanchor="center", font=dict(size=16)), height=820)
     return fig
 
 def build_ranking_bar(year, metric_name, selected, target_pct):
@@ -316,9 +315,9 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     
     fig.update_layout(
         template="plotly_dark", 
-        margin=dict(l=130, r=60, t=55, b=35), 
-        height=850,
-        title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5, xanchor="center"), 
+        margin=dict(l=120, r=40, t=50, b=40), 
+        height=820,
+        title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=15, color=APPLE_TEXT), x=0.5, xanchor="center"), 
         xaxis=dict(range=[x_lo, x_hi], showgrid=True, gridcolor="rgba(255,255,255,0.06)"), 
         yaxis=dict(showgrid=False)
     )
@@ -343,7 +342,7 @@ def build_movers_dumbbell(yr_win, selected):
         fig.add_trace(go.Scatter(x=[r["v0"], r["v1"]], y=[c, c], mode="lines", line=dict(color=line_col, width=3.8 if is_sel else 2.0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=mdf["v0"], y=mdf["country"], mode="markers", name=f"Start ({start_yr})", marker=dict(size=9, color=APPLE_CARD, line=dict(color="#8E8E93", width=2.2))))
     fig.add_trace(go.Scatter(x=mdf["v1"], y=mdf["country"], mode="markers+text", name=f"End ({end_yr})", text=[f" {d:+.1f} pp" for d in mdf["delta"]], textposition="middle right", textfont=dict(size=11, color="#E5E5EA"), marker=dict(size=11, color=[APPLE_AMBER if c in sel_set else APPLE_BLUE for c in mdf["country"]])))
-    fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=80, b=65), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b><br><span style='font-size:12px;color:#8E8E93;'>Sorted by Percentage-Point Gain</span>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=660)
+    fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=60, b=50), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=650)
     return apply_apple_plotly_theme(fig, uirev=f"movers-{start_yr}-{end_yr}")
 
 def country_stats_table(selected, yr_win, target_pct):
@@ -384,7 +383,7 @@ with st.sidebar:
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Top 5 Leaders", type="primary"):
+        if st.button("Top 5 Leaders"):
             top = d_all[(d_all["year"] == year_val) & d_all["renewable_share_pct"].notna()].sort_values("renewable_share_pct", ascending=False)["country"].head(5).tolist()
             st.session_state["countries"] = top
             st.rerun()
@@ -406,21 +405,31 @@ with st.sidebar:
     st.session_state["countries"] = selected_countries
 
     st.markdown("---")
+    st.markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin-bottom:6px;'>About & Metadata</div>", unsafe_allow_html=True)
     st.markdown(f"""
     <div style='font-size:11.5px;color:{APPLE_MUTED};line-height:1.5;background:{APPLE_CARD_ELEVATED};border:1px solid {APPLE_BORDER};border-radius:12px;padding:12px;'>
-        <div style='color:{APPLE_TEXT};font-weight:600;margin-bottom:4px;'>EU Renewable Energy Observatory</div>
-        <div style='margin-bottom:8px;color:#AEAEB2;font-size:11px;'>
-            Interactive visual analytics tracking national renewable energy shares in gross final consumption, annual momentum, and progress against EU policy benchmarks.
-        </div>
+        <strong style='color:{APPLE_TEXT};'>EU Renewable Energy Observatory</strong><br><br>
+        Interactive visual analytics tracking national renewable energy shares in gross final consumption, annual momentum, and progress against EU policy benchmarks.<br><br>
         <strong>Source:</strong> Eurostat (<code>nrg_ind_ren</code>)<br>
-        <strong>Coverage:</strong> {len(COUNTRIES)} nations · {YEARS[0]}–{YEARS[-1]}<br>
+        <strong>Coverage:</strong> 37 nations · 2016–2025<br>
+        <strong>Metric:</strong> Share in gross final energy (%)<br>
+        <strong>Course:</strong> Data Visualization Methods<br>
         <strong>Institution:</strong> University of Debrecen
     </div>
     """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
-# Main Content & Bento Card Tabs
+# Main Content & Title Header
 # ----------------------------------------------------------------------------
+st.markdown(f"""
+<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid {APPLE_BORDER};'>
+    <div>
+        <h1 style='font-size: 22px; font-weight: 600; color: {APPLE_TEXT}; margin: 0;'>EU Renewable Energy Observatory</h1>
+        <p style='font-size: 13px; color: {APPLE_MUTED}; margin: 2px 0 0 0;'>Interactive analytics tracking national renewable shares and policy targets ({YEARS[0]}–{YEARS[-1]})</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 if IS_DEMO:
     st.warning("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.")
 
@@ -454,14 +463,14 @@ with tab_trends:
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
     stats_df = country_stats_table(selected_countries, (YEARS[0], YEARS[-1]), target_val)
     st.dataframe(stats_df, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_movers:
     st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window · Click any point to select & jump to year</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window</div>", unsafe_allow_html=True)
     fig_movers = build_movers_dumbbell((YEARS[0], YEARS[-1]), selected_countries)
     st.plotly_chart(fig_movers, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -469,7 +478,6 @@ with tab_movers:
 with tab_spread:
     st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
     show_pts = st.checkbox("Show all countries as dots", value=True)
-    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Annual distribution across reporting countries · Gold = selected · Red = 1.5×IQR outliers</div>", unsafe_allow_html=True)
     fig_box = call_viz(obox.create_outlier_box, df, uirev="box-dist", year_range=(YEARS[0], YEARS[-1]), selected_countries=selected_countries, show_all_points=show_pts, include_controls=False)
     fig_box.update_layout(height=600)
     st.plotly_chart(fig_box, use_container_width=True)
