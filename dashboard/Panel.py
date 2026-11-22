@@ -396,6 +396,31 @@ def apply_apple_plotly_theme(fig, uirev=None, preserve_geo=False):
     return fig
 
 # ----------------------------------------------------------------------------
+# Plot Helper Functions
+# ----------------------------------------------------------------------------
+def error_fig(msg):
+    f = go.Figure()
+    f.add_annotation(text=msg, showarrow=False, font=dict(size=14, color=APPLE_MUTED, family=APPLE_FONT))
+    f.update_layout(template="plotly_dark", paper_bgcolor=APPLE_CARD, plot_bgcolor=APPLE_CARD)
+    return f
+
+def call_viz(fn, primary_arg, uirev=None, preserve_geo=False, **kwargs):
+    if uirev is not None:
+        kwargs.setdefault("uirev", uirev)
+    try:
+        sig = inspect.signature(fn)
+        accepts_extra = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
+        accepted = kwargs if accepts_extra else {k: v for k, v in kwargs.items() if k in sig.parameters}
+    except (TypeError, ValueError):
+        accepted = kwargs
+    res = fn(primary_arg, **accepted)
+    fig = res.object if hasattr(res, "object") else res
+    if isinstance(fig, go.Figure):
+        if fig.layout.title.text:
+            fig.update_layout(title=dict(x=0.5, xanchor="center"))
+    return apply_apple_plotly_theme(fig, uirev=uirev, preserve_geo=preserve_geo)
+
+# ----------------------------------------------------------------------------
 # Interactive Companion Charts & Dynamic Analytics
 # ----------------------------------------------------------------------------
 def build_map_with_target(year, metric_name, selected, target_pct):
@@ -415,7 +440,7 @@ def build_map_with_target(year, metric_name, selected, target_pct):
         sub = d_all[(d_all["year"] == year) & d_all["renewable_share_pct"].notna()]
         met_cnt = int((sub["renewable_share_pct"] >= target_pct).sum()) if target_pct > 0 else 0
         tot_cnt = len(sub)
-        
+
         title_text = f"<b>EUROPEAN RENEWABLE ENERGY SHARE · {year}</b>"
         if target_pct > 0:
             title_text += (
@@ -512,27 +537,27 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
 def build_movers_dumbbell(yr_win, selected):
     raw = df[~df["is_aggregate"]].dropna(subset=["renewable_share_pct"])
     start_yr, end_yr = int(yr_win[0]), int(yr_win[1])
-    
+
     df_start = raw[raw["year"] == start_yr].set_index("country")["renewable_share_pct"]
     df_end = raw[raw["year"] == end_yr].set_index("country")["renewable_share_pct"]
-    
+
     mdf = pd.DataFrame({"v0": df_start, "v1": df_end}).dropna()
     if mdf.empty:
         return error_fig(f"No overlapping country data available between {start_yr} and {end_yr}.")
-    
+
     mdf["delta"] = mdf["v1"] - mdf["v0"]
     mdf = mdf.sort_values("delta", ascending=True).reset_index()
-    
+
     sel_set = set(selected or [])
     fig = go.Figure()
-    
+
     country_order = mdf["country"].tolist()
-    
+
     for _, r in mdf.iterrows():
         c = r["country"]
         is_sel = c in sel_set
         line_col = APPLE_AMBER if is_sel else (APPLE_GREEN if r["delta"] >= 0 else APPLE_RED)
-        
+
         fig.add_trace(go.Scatter(
             x=[r["v0"], r["v1"]],
             y=[c, c],
@@ -541,48 +566,48 @@ def build_movers_dumbbell(yr_win, selected):
             showlegend=False,
             hoverinfo="skip",
         ))
-        
+
     fig.add_trace(go.Scatter(
         x=mdf["v0"],
         y=mdf["country"],
         mode="markers",
         name=f"Start ({start_yr})",
-        customdata=list(zip(mdf["country"], [start_yr]*len(mdf))),
+        customdata=list(zip(mdf["country"], [start_yr] * len(mdf))),
         marker=dict(size=9, color=APPLE_CARD, line=dict(color="#8E8E93", width=2.2)),
         hovertemplate="<b>%{y}</b> · Start (" + str(start_yr) + "): <b>%{x:.2f}%</b><br><i>Click to toggle selection</i><extra></extra>",
     ))
-    
+
     fig.add_trace(go.Scatter(
         x=mdf["v1"],
         y=mdf["country"],
         mode="markers+text",
         name=f"End ({end_yr})",
-        customdata=list(zip(mdf["country"], [end_yr]*len(mdf))),
+        customdata=list(zip(mdf["country"], [end_yr] * len(mdf))),
         text=[f" {d:+.1f} pp" for d in mdf["delta"]],
         textposition="middle right",
         textfont=dict(size=11, color="#E5E5EA"),
         marker=dict(size=11, color=[APPLE_AMBER if c in sel_set else APPLE_BLUE for c in mdf["country"]]),
         hovertemplate="<b>%{y}</b> · End (" + str(end_yr) + "): <b>%{x:.2f}%</b><br><i>Click to toggle selection</i><extra></extra>",
     ))
-    
+
     fig.update_layout(
         template="plotly_dark",
         margin=dict(l=130, r=60, t=80, b=65),
         title=dict(
-            text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b><br><span style='font-size:12px;color:#8E8E93;'>Sorted by Percentage-Point Gain</span>", 
-            font=dict(size=16, color=APPLE_TEXT), 
-            x=0.5, 
+            text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b><br><span style='font-size:12px;color:#8E8E93;'>Sorted by Percentage-Point Gain</span>",
+            font=dict(size=16, color=APPLE_TEXT),
+            x=0.5,
             xanchor="center",
         ),
         xaxis=dict(title="Renewable Share (%)", ticksuffix="%", gridcolor="rgba(255,255,255,0.06)", tickfont=dict(size=11)),
         yaxis=dict(showgrid=False, tickfont=dict(size=12, color="#D1D1D6"), categoryorder="array", categoryarray=country_order),
         legend=dict(
-            orientation="h", 
-            x=0.5, 
-            y=-0.22, 
-            xanchor="center", 
+            orientation="h",
+            x=0.5,
+            y=-0.22,
+            xanchor="center",
             yanchor="top",
-            font=dict(size=12)
+            font=dict(size=12),
         ),
         clickmode="event+select",
     )
@@ -610,327 +635,294 @@ def country_stats_table(selected, yr_win, target_pct):
     return pd.DataFrame(rows)
 
 # ----------------------------------------------------------------------------
-# Interactive Controls & Quick Presets
+# Build Dashboard Factory (Per-Session Safe for Server & Streamlit)
 # ----------------------------------------------------------------------------
-SIDEBAR_W = 260
-year_slider = pn.widgets.IntSlider(name="Year (Map & Ranking)", start=YEARS[0], end=YEARS[-1], value=LATEST, step=1, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
-map_metric = pn.widgets.Select(name="Map & Ranking Metric", options=list(MAP_METRICS.keys()), value=list(MAP_METRICS.keys())[0], width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
-target_slider = pn.widgets.IntSlider(name="Policy Target Benchmark (%)", start=10, end=65, value=32, step=1, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
-country_picker = pn.widgets.MultiChoice(name="Selected Countries", options=COUNTRIES, value=DEFAULT_SEL, solid=False, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
+def build_dashboard():
+    SIDEBAR_W = 260
+    year_slider = pn.widgets.IntSlider(name="Year (Map & Ranking)", start=YEARS[0], end=YEARS[-1], value=LATEST, step=1, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
+    map_metric = pn.widgets.Select(name="Map & Ranking Metric", options=list(MAP_METRICS.keys()), value=list(MAP_METRICS.keys())[0], width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
+    target_slider = pn.widgets.IntSlider(name="Policy Target Benchmark (%)", start=10, end=65, value=32, step=1, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
+    country_picker = pn.widgets.MultiChoice(name="Selected Countries", options=COUNTRIES, value=DEFAULT_SEL, solid=False, width=SIDEBAR_W, stylesheets=[WIDGET_CSS])
 
-btn_top5 = pn.widgets.Button(name="Top 5 Leaders", button_type="primary", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
-btn_movers = pn.widgets.Button(name="Top 5 Movers", button_type="success", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
-btn_v4 = pn.widgets.Button(name="Visegrád (V4)", button_type="default", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
-btn_clear = pn.widgets.Button(name="Clear All", button_type="light", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
+    btn_top5 = pn.widgets.Button(name="Top 5 Leaders", button_type="primary", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
+    btn_movers = pn.widgets.Button(name="Top 5 Movers", button_type="success", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
+    btn_v4 = pn.widgets.Button(name="Visegrád (V4)", button_type="default", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
+    btn_clear = pn.widgets.Button(name="Clear All", button_type="light", sizing_mode="stretch_width", stylesheets=[BUTTON_CSS])
 
-def apply_top5(_):
-    yr_now = int(year_slider.value)
-    top = (
-        d_all[(d_all["year"] == yr_now) & d_all["renewable_share_pct"].notna()]
-        .sort_values("renewable_share_pct", ascending=False)["country"]
-        .head(5)
-        .tolist()
-    )
-    if top:
-        country_picker.value = top
-
-def apply_top_movers(_):
-    lo, hi = YEARS[0], YEARS[-1]
-    sub = d_all[d_all["year"].isin([lo, hi])].pivot(index="country", columns="year", values="renewable_share_pct").dropna()
-    if not sub.empty and lo != hi:
-        deltas = (sub[hi] - sub[lo]).sort_values(ascending=False)
-        country_picker.value = deltas.head(5).index.tolist()
-
-def apply_v4(_):
-    v4 = [c for c in ["Hungary", "Poland", "Czechia", "Slovakia"] if c in COUNTRIES]
-    if v4:
-        country_picker.value = v4
-
-def apply_clear(_):
-    country_picker.value = []
-
-btn_top5.on_click(apply_top5)
-btn_movers.on_click(apply_top_movers)
-btn_v4.on_click(apply_v4)
-btn_clear.on_click(apply_clear)
-
-trend_mode = pn.widgets.Select(name="Trend View", options=TREND_MODES, width=200, stylesheets=[WIDGET_CSS])
-show_eu = pn.widgets.Checkbox(name="Show EU-27 average line", value=True, stylesheets=[WIDGET_CSS])
-show_target_trend = pn.widgets.Checkbox(name="Show Policy Target line", value=True, stylesheets=[WIDGET_CSS])
-show_all_pts = pn.widgets.Checkbox(name="Show all countries as dots", value=True, stylesheets=[WIDGET_CSS])
-heat_view = pn.widgets.Select(name="Matrix View", options=HEATMAP_VIEWS, width=200, stylesheets=[WIDGET_CSS])
-heat_only_sel = pn.widgets.Checkbox(name="Only selected countries", value=False, stylesheets=[WIDGET_CSS])
-
-def on_pick(event):
-    data = event.new
-    if not data or not data.get("points"):
-        return
-    pt = data["points"][0]
-    name = None
-    clicked_year = None
-    cd = pt.get("customdata")
-    if isinstance(cd, (list, tuple)) and len(cd) >= 2:
-        if cd[0] in COUNTRIES:
-            name = cd[0]
-        if isinstance(cd[1], (int, float)) and int(cd[1]) in YEARS:
-            clicked_year = int(cd[1])
-    if not name:
-        for key in ("customdata", "text", "y", "location"):
-            v = pt.get(key)
-            if isinstance(v, (list, tuple)) and v:
-                v = v[-1] if v[-1] in COUNTRIES else v[0]
-            if v in COUNTRIES:
-                name = v
-                break
-    if clicked_year is not None and clicked_year != int(year_slider.value):
-        year_slider.value = clicked_year
-    if not name:
-        return
-    cur = list(country_picker.value)
-    country_picker.value = [c for c in cur if c != name] if name in cur else cur + [name]
-
-# ----------------------------------------------------------------------------
-# Plot Panes
-# ----------------------------------------------------------------------------
-def error_fig(msg):
-    f = go.Figure()
-    f.add_annotation(text=msg, showarrow=False, font=dict(size=14, color=APPLE_MUTED, family=APPLE_FONT))
-    f.update_layout(template="plotly_dark", paper_bgcolor=APPLE_CARD, plot_bgcolor=APPLE_CARD)
-    return f
-
-def call_viz(fn, primary_arg, uirev=None, preserve_geo=False, **kwargs):
-    if uirev is not None:
-        kwargs.setdefault("uirev", uirev)
-    try:
-        sig = inspect.signature(fn)
-        accepts_extra = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
-        accepted = kwargs if accepts_extra else {k: v for k, v in kwargs.items() if k in sig.parameters}
-    except (TypeError, ValueError):
-        accepted = kwargs
-    res = fn(primary_arg, **accepted)
-    fig = res.object if hasattr(res, "object") else res
-    if isinstance(fig, go.Figure):
-        if fig.layout.title.text:
-            fig.update_layout(title=dict(x=0.5, xanchor="center"))
-    return apply_apple_plotly_theme(fig, uirev=uirev, preserve_geo=preserve_geo)
-
-def make_pane(builder, widgets, height, interactive_pick=False, stretch_card=False, **kw):
-    if stretch_card:
-        kw.setdefault("sizing_mode", "stretch_both")
-        kw.setdefault("styles", {"height": "100%", "min-height": "0", "width": "100%"})
-        pane = pn.pane.Plotly(error_fig("Loading…"), config=PLOT_CFG, **kw)
-    else:
-        kw.setdefault("sizing_mode", "stretch_both")
-        kw.setdefault("styles", {"height": f"{height}px", "width": "100%"})
-        pane = pn.pane.Plotly(error_fig("Loading…"), height=height, config=PLOT_CFG, **kw)
-    def update(*_):
-        try:
-            pane.object = builder()
-        except Exception as exc:
-            pane.object = error_fig(f"Could not render chart: {exc}")
-    for w in widgets:
-        watch_param = "value_throttled" if hasattr(w.param, "value_throttled") else "value"
-        w.param.watch(update, watch_param)
-    if interactive_pick:
-        pane.param.watch(on_pick, "click_data")
-    update()
-    return pane
-
-def bento_box(*objects, **kw):
-    kw.setdefault("sizing_mode", "stretch_width")
-    return pn.Column(*objects, css_classes=["apple-bento"], **kw)
-
-def sel():
-    return list(country_picker.value)
-
-def yr():
-    return (YEARS[0], YEARS[-1])
-
-# Stretched and enlarged map chart container dimensions and height
-map_pane = make_pane(
-    lambda: build_map_with_target(int(year_slider.value), map_metric.value, sel(), int(target_slider.value)),
-    [year_slider, map_metric, country_picker, target_slider],
-    850, interactive_pick=True, stretch_card=True,
-)
-bar_pane = make_pane(
-    lambda: build_ranking_bar(int(year_slider.value), map_metric.value, sel(), int(target_slider.value)),
-    [year_slider, map_metric, country_picker, target_slider],
-    700, interactive_pick=True, stretch_card=True,
-)
-
-def build_trend_with_target():
-    fig = call_viz(
-        mtrend.create_multitrend,
-        df,
-        uirev=f"trend-{trend_mode.value}",
-        selected_countries=sel(),
-        trend_mode=trend_mode.value,
-        year_range=yr(),
-        show_eu=show_eu.value,
-        include_controls=False,
-    )
-    if isinstance(fig, go.Figure) and show_target_trend.value and "Absolute" in trend_mode.value and int(target_slider.value) > 0:
-        fig.add_hline(
-            y=int(target_slider.value),
-            line_dash="dot",
-            line_color=APPLE_GREEN,
-            line_width=1.8,
-            annotation_text=f"Policy Target ({int(target_slider.value)}%)",
-            annotation_position="top left",
-            annotation_font=dict(color=APPLE_GREEN, size=11.5),
+    def apply_top5(_):
+        yr_now = int(year_slider.value)
+        top = (
+            d_all[(d_all["year"] == yr_now) & d_all["renewable_share_pct"].notna()]
+            .sort_values("renewable_share_pct", ascending=False)["country"]
+            .head(5)
+            .tolist()
         )
-    fig.update_layout(margin=dict(l=60, r=40, t=60, b=50), font=dict(size=13))
-    return fig
+        if top:
+            country_picker.value = top
 
-trend_pane = make_pane(build_trend_with_target, [country_picker, trend_mode, show_eu, show_target_trend, target_slider], 620, interactive_pick=True)
-movers_pane = make_pane(lambda: build_movers_dumbbell(yr(), sel()), [country_picker], 660, interactive_pick=True)
-box_pane = make_pane(
-    lambda: call_viz(obox.create_outlier_box, df, uirev="box-dist", year_range=yr(), selected_countries=sel(), show_all_points=show_all_pts.value, include_controls=False),
-    [country_picker, show_all_pts], 620, interactive_pick=True,
-)
-heat_pane = make_pane(
-    lambda: call_viz(hmap.create_heatmap, df, uirev=f"heat-{heat_view.value}", default_view=heat_view.value, year_range=yr(), selected_countries=sel(), only_selected=heat_only_sel.value, include_controls=False),
-    [heat_view, country_picker, heat_only_sel], 660, interactive_pick=True,
-)
+    def apply_top_movers(_):
+        lo, hi = YEARS[0], YEARS[-1]
+        sub = d_all[d_all["year"].isin([lo, hi])].pivot(index="country", columns="year", values="renewable_share_pct").dropna()
+        if not sub.empty and lo != hi:
+            deltas = (sub[hi] - sub[lo]).sort_values(ascending=False)
+            country_picker.value = deltas.head(5).index.tolist()
 
-# ----------------------------------------------------------------------------
-# Tables & CSV Export
-# ----------------------------------------------------------------------------
-stats_table = pn.widgets.Tabulator(
-    country_stats_table(sel(), yr(), int(target_slider.value)),
-    show_index=False, disabled=True, theme="midnight", layout="fit_columns", sizing_mode="stretch_width", height=220,
-)
-for _w in (country_picker, target_slider):
-    _wp = "value_throttled" if hasattr(_w.param, "value_throttled") else "value"
-    _w.param.watch(lambda *_: setattr(stats_table, "value", country_stats_table(sel(), yr(), int(target_slider.value))), _wp)
+    def apply_v4(_):
+        v4 = [c for c in ["Hungary", "Poland", "Czechia", "Slovakia"] if c in COUNTRIES]
+        if v4:
+            country_picker.value = v4
 
-only_sel_data = pn.widgets.Checkbox(name="Filter table to selected countries only", value=False, stylesheets=[WIDGET_CSS])
+    def apply_clear(_):
+        country_picker.value = []
 
-def build_data_table_df():
-    t = d_all.rename(columns={
-        "renewable_share_pct": "share_pct",
-        "yoy_change": "yoy_pp",
-        "change_since_base": "since_base_pp",
-        "vs_eu_avg": "gap_to_eu27_pp",
-        "eu_avg_pct": "eu27_pct",
-        "year_rank": "rank",
-    })
-    keep = ["country", "geo_code", "year", "share_pct", "rank", "yoy_pp", "since_base_pp", "eu27_pct", "gap_to_eu27_pp", "data_flag"]
-    lo, hi = yr()
-    out = t[t["year"].between(lo, hi) & t["share_pct"].notna()]
-    if only_sel_data.value and sel():
-        out = out[out["country"].isin(sel())]
-    return out[keep].round(2).sort_values(["year", "rank"], ascending=[False, True])
+    btn_top5.on_click(apply_top5)
+    btn_movers.on_click(apply_top_movers)
+    btn_v4.on_click(apply_v4)
+    btn_clear.on_click(apply_clear)
 
-data_table = pn.widgets.Tabulator(
-    build_data_table_df(),
-    show_index=False, disabled=True, theme="midnight", header_filters=True, pagination="local", page_size=15, layout="fit_columns", sizing_mode="stretch_width", height=540,
-)
-for _w in (country_picker, only_sel_data):
-    _wp = "value_throttled" if hasattr(_w.param, "value_throttled") else "value"
-    _w.param.watch(lambda *_: setattr(data_table, "value", build_data_table_df()), _wp)
+    trend_mode = pn.widgets.Select(name="Trend View", options=TREND_MODES, width=200, stylesheets=[WIDGET_CSS])
+    show_eu = pn.widgets.Checkbox(name="Show EU-27 average line", value=True, stylesheets=[WIDGET_CSS])
+    show_target_trend = pn.widgets.Checkbox(name="Show Policy Target line", value=True, stylesheets=[WIDGET_CSS])
+    show_all_pts = pn.widgets.Checkbox(name="Show all countries as dots", value=True, stylesheets=[WIDGET_CSS])
+    heat_view = pn.widgets.Select(name="Matrix View", options=HEATMAP_VIEWS, width=200, stylesheets=[WIDGET_CSS])
+    heat_only_sel = pn.widgets.Checkbox(name="Only selected countries", value=False, stylesheets=[WIDGET_CSS])
 
-download = pn.widgets.FileDownload(
-    callback=lambda: StringIO(data_table.value.to_csv(index=False)),
-    filename="renewable_share_filtered.csv",
-    label="Export CSV", button_type="primary", width=140, stylesheets=[BUTTON_CSS],
-)
+    def on_pick(event):
+        data = event.new
+        if not data or not data.get("points"):
+            return
+        pt = data["points"][0]
+        name = None
+        clicked_year = None
+        cd = pt.get("customdata")
+        if isinstance(cd, (list, tuple)) and len(cd) >= 2:
+            if cd[0] in COUNTRIES:
+                name = cd[0]
+            if isinstance(cd[1], (int, float)) and int(cd[1]) in YEARS:
+                clicked_year = int(cd[1])
+        if not name:
+            for key in ("customdata", "text", "y", "location"):
+                v = pt.get(key)
+                if isinstance(v, (list, tuple)) and v:
+                    v = v[-1] if v[-1] in COUNTRIES else v[0]
+                if v in COUNTRIES:
+                    name = v
+                    break
+        if clicked_year is not None and clicked_year != int(year_slider.value):
+            year_slider.value = clicked_year
+        if not name:
+            return
+        cur = list(country_picker.value)
+        country_picker.value = [c for c in cur if c != name] if name in cur else cur + [name]
 
-# ----------------------------------------------------------------------------
-# Bento Dashboard Layout
-# ----------------------------------------------------------------------------
-def note(text):
-    return pn.pane.Markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>{text}</div>", sizing_mode="stretch_width")
+    def make_pane(builder, widgets, height, interactive_pick=False, stretch_card=False, **kw):
+        if stretch_card:
+            kw.setdefault("sizing_mode", "stretch_both")
+            kw.setdefault("styles", {"height": "100%", "min-height": "0", "width": "100%"})
+            pane = pn.pane.Plotly(error_fig("Loading…"), config=PLOT_CFG, **kw)
+        else:
+            kw.setdefault("sizing_mode", "stretch_both")
+            kw.setdefault("styles", {"height": f"{height}px", "width": "100%"})
+            pane = pn.pane.Plotly(error_fig("Loading…"), height=height, config=PLOT_CFG, **kw)
+        def update(*_):
+            try:
+                pane.object = builder()
+            except Exception as exc:
+                pane.object = error_fig(f"Could not render chart: {exc}")
+        for w in widgets:
+            watch_param = "value_throttled" if hasattr(w.param, "value_throttled") else "value"
+            w.param.watch(update, watch_param)
+        if interactive_pick:
+            pane.param.watch(on_pick, "click_data")
+        update()
+        return pane
 
-# Stretched map bento container flex sizing (takes more width and height space)
-overview = pn.Row(
-    bento_box(map_pane, sizing_mode="stretch_width", styles={"flex": "2 1 650px", "min-width": "0", "height": "880px", "overflow": "hidden"}),
-    bento_box(bar_pane, sizing_mode="stretch_width", styles={"flex": "1 1 350px", "min-width": "0", "height": "880px", "overflow": "hidden"}),
-    sizing_mode="stretch_width", styles={"gap": "16px", "flex-wrap": "wrap", "margin-top": "4px"},
-)
+    def bento_box(*objects, **kw):
+        kw.setdefault("sizing_mode", "stretch_width")
+        return pn.Column(*objects, css_classes=["apple-bento"], **kw)
 
-trends = pn.Column(
-    bento_box(
-        pn.Row(
-            pn.Spacer(sizing_mode="stretch_width"),
-            trend_mode,
-            pn.Spacer(width=16),
-            show_eu,
-            show_target_trend,
-            pn.Spacer(sizing_mode="stretch_width"),
-            align="center",
-            styles={"gap": "14px", "align-items": "center", "margin-bottom": "6px", "flex-wrap": "wrap"},
+    def sel():
+        return list(country_picker.value)
+
+    def yr():
+        return (YEARS[0], YEARS[-1])
+
+    map_pane = make_pane(
+        lambda: build_map_with_target(int(year_slider.value), map_metric.value, sel(), int(target_slider.value)),
+        [year_slider, map_metric, country_picker, target_slider],
+        850, interactive_pick=True, stretch_card=True,
+    )
+    bar_pane = make_pane(
+        lambda: build_ranking_bar(int(year_slider.value), map_metric.value, sel(), int(target_slider.value)),
+        [year_slider, map_metric, country_picker, target_slider],
+        700, interactive_pick=True, stretch_card=True,
+    )
+
+    def build_trend_with_target():
+        fig = call_viz(
+            mtrend.create_multitrend,
+            df,
+            uirev=f"trend-{trend_mode.value}",
+            selected_countries=sel(),
+            trend_mode=trend_mode.value,
+            year_range=yr(),
+            show_eu=show_eu.value,
+            include_controls=False,
+        )
+        if isinstance(fig, go.Figure) and show_target_trend.value and "Absolute" in trend_mode.value and int(target_slider.value) > 0:
+            fig.add_hline(
+                y=int(target_slider.value),
+                line_dash="dot",
+                line_color=APPLE_GREEN,
+                line_width=1.8,
+                annotation_text=f"Policy Target ({int(target_slider.value)}%)",
+                annotation_position="top left",
+                annotation_font=dict(color=APPLE_GREEN, size=11.5),
+            )
+        fig.update_layout(margin=dict(l=60, r=40, t=60, b=50), font=dict(size=13))
+        return fig
+
+    trend_pane = make_pane(build_trend_with_target, [country_picker, trend_mode, show_eu, show_target_trend, target_slider], 620, interactive_pick=True)
+    movers_pane = make_pane(lambda: build_movers_dumbbell(yr(), sel()), [country_picker], 660, interactive_pick=True)
+    box_pane = make_pane(
+        lambda: call_viz(obox.create_outlier_box, df, uirev="box-dist", year_range=yr(), selected_countries=sel(), show_all_points=show_all_pts.value, include_controls=False),
+        [country_picker, show_all_pts], 620, interactive_pick=True,
+    )
+    heat_pane = make_pane(
+        lambda: call_viz(hmap.create_heatmap, df, uirev=f"heat-{heat_view.value}", default_view=heat_view.value, year_range=yr(), selected_countries=sel(), only_selected=heat_only_sel.value, include_controls=False),
+        [heat_view, country_picker, heat_only_sel], 660, interactive_pick=True,
+    )
+
+    stats_table = pn.widgets.Tabulator(
+        country_stats_table(sel(), yr(), int(target_slider.value)),
+        show_index=False, disabled=True, theme="midnight", layout="fit_columns", sizing_mode="stretch_width", height=220,
+    )
+    for _w in (country_picker, target_slider):
+        _wp = "value_throttled" if hasattr(_w.param, "value_throttled") else "value"
+        _w.param.watch(lambda *_: setattr(stats_table, "value", country_stats_table(sel(), yr(), int(target_slider.value))), _wp)
+
+    only_sel_data = pn.widgets.Checkbox(name="Filter table to selected countries only", value=False, stylesheets=[WIDGET_CSS])
+
+    def build_data_table_df():
+        t = d_all.rename(columns={
+            "renewable_share_pct": "share_pct",
+            "yoy_change": "yoy_pp",
+            "change_since_base": "since_base_pp",
+            "vs_eu_avg": "gap_to_eu27_pp",
+            "eu_avg_pct": "eu27_pct",
+            "year_rank": "rank",
+        })
+        keep = ["country", "geo_code", "year", "share_pct", "rank", "yoy_pp", "since_base_pp", "eu27_pct", "gap_to_eu27_pp", "data_flag"]
+        lo, hi = yr()
+        out = t[t["year"].between(lo, hi) & t["share_pct"].notna()]
+        if only_sel_data.value and sel():
+            out = out[out["country"].isin(sel())]
+        return out[keep].round(2).sort_values(["year", "rank"], ascending=[False, True])
+
+    data_table = pn.widgets.Tabulator(
+        build_data_table_df(),
+        show_index=False, disabled=True, theme="midnight", header_filters=True, pagination="local", page_size=15, layout="fit_columns", sizing_mode="stretch_width", height=540,
+    )
+    for _w in (country_picker, only_sel_data):
+        _wp = "value_throttled" if hasattr(_w.param, "value_throttled") else "value"
+        _w.param.watch(lambda *_: setattr(data_table, "value", build_data_table_df()), _wp)
+
+    download = pn.widgets.FileDownload(
+        callback=lambda: StringIO(data_table.value.to_csv(index=False)),
+        filename="renewable_share_filtered.csv",
+        label="Export CSV", button_type="primary", width=140, stylesheets=[BUTTON_CSS],
+    )
+
+    def note(text):
+        return pn.pane.Markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>{text}</div>", sizing_mode="stretch_width")
+
+    overview = pn.Row(
+        bento_box(map_pane, sizing_mode="stretch_width", styles={"flex": "2 1 650px", "min-width": "0", "height": "880px", "overflow": "hidden"}),
+        bento_box(bar_pane, sizing_mode="stretch_width", styles={"flex": "1 1 350px", "min-width": "0", "height": "880px", "overflow": "hidden"}),
+        sizing_mode="stretch_width", styles={"gap": "16px", "flex-wrap": "wrap", "margin-top": "4px"},
+    )
+
+    trends = pn.Column(
+        bento_box(
+            pn.Row(
+                pn.Spacer(sizing_mode="stretch_width"),
+                trend_mode,
+                pn.Spacer(width=16),
+                show_eu,
+                show_target_trend,
+                pn.Spacer(sizing_mode="stretch_width"),
+                align="center",
+                styles={"gap": "14px", "align-items": "center", "margin-bottom": "6px", "flex-wrap": "wrap"},
+            ),
+            trend_pane,
         ),
-        trend_pane,
-    ),
-    pn.Spacer(height=12),
-    bento_box(
-        pn.pane.Markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", sizing_mode="stretch_width"),
-        stats_table,
-    ),
-    sizing_mode="stretch_width",
-    styles={"margin-top": "4px"},
-)
+        pn.Spacer(height=12),
+        bento_box(
+            pn.pane.Markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", sizing_mode="stretch_width"),
+            stats_table,
+        ),
+        sizing_mode="stretch_width",
+        styles={"margin-top": "4px"},
+    )
 
-movers = bento_box(note("Hollow dot = start of window · Filled dot = end of window · Click any point to select & jump to year"), movers_pane, styles={"margin-top": "4px"})
-spread = bento_box(pn.Row(note("Annual distribution across reporting countries · Gold = selected · Red = 1.5×IQR outliers"), show_all_pts, align="center"), box_pane, styles={"margin-top": "4px"})
-matrix = bento_box(pn.Row(heat_view, heat_only_sel, align="end", styles={"gap": "14px"}), heat_pane, styles={"margin-top": "4px"})
-data = bento_box(pn.Row(note("Filter directly in column headers or export the active view."), only_sel_data, download, align="center", styles={"gap": "12px"}), data_table, styles={"margin-top": "4px"})
+    movers = bento_box(note("Hollow dot = start of window · Filled dot = end of window · Click any point to select & jump to year"), movers_pane, styles={"margin-top": "4px"})
+    spread = bento_box(pn.Row(note("Annual distribution across reporting countries · Gold = selected · Red = 1.5×IQR outliers"), show_all_pts, align="center"), box_pane, styles={"margin-top": "4px"})
+    matrix = bento_box(pn.Row(heat_view, heat_only_sel, align="end", styles={"gap": "14px"}), heat_pane, styles={"margin-top": "4px"})
+    data = bento_box(pn.Row(note("Filter directly in column headers or export the active view."), only_sel_data, download, align="center", styles={"gap": "12px"}), data_table, styles={"margin-top": "4px"})
 
-tabs = pn.Tabs(
-    ("Overview", overview), ("Trends", trends), ("Movers", movers), ("Spread & Outliers", spread), ("Matrix", matrix), ("Data", data),
-    dynamic=True, sizing_mode="stretch_width", stylesheets=[TABS_CSS],
-)
+    tabs = pn.Tabs(
+        ("Overview", overview), ("Trends", trends), ("Movers", movers), ("Spread & Outliers", spread), ("Matrix", matrix), ("Data", data),
+        dynamic=True, sizing_mode="stretch_width", stylesheets=[TABS_CSS],
+    )
 
-main = []
-if IS_DEMO:
-    main.append(pn.pane.Alert("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.", alert_type="warning", sizing_mode="stretch_width"))
-main.append(tabs)
+    main = []
+    if IS_DEMO:
+        main.append(pn.pane.Alert("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.", alert_type="warning", sizing_mode="stretch_width"))
+    main.append(tabs)
 
-preset_grid = pn.GridBox(btn_top5, btn_movers, btn_v4, btn_clear, ncols=2, width=SIDEBAR_W, styles={"gap": "6px", "margin-top": "4px"})
+    preset_grid = pn.GridBox(btn_top5, btn_movers, btn_v4, btn_clear, ncols=2, width=SIDEBAR_W, styles={"gap": "6px", "margin-top": "4px"})
 
-def sidebar_heading(text):
-    return pn.pane.Markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin:0 0 3px 0;'>{text}</div>", width=SIDEBAR_W, margin=(2, 0, 0, 0))
+    def sidebar_heading(text):
+        return pn.pane.Markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin:0 0 3px 0;'>{text}</div>", width=SIDEBAR_W, margin=(2, 0, 0, 0))
 
-sidebar_content = pn.Column(
-    sidebar_heading("Snapshot & Target"),
-    year_slider, map_metric, target_slider,
-    pn.layout.Divider(width=SIDEBAR_W, margin=(8, 0), styles={"border-color": APPLE_BORDER}),
-    sidebar_heading("Comparison"),
-    country_picker, preset_grid,
-    pn.layout.Divider(width=SIDEBAR_W, margin=(10, 0), styles={"border-color": APPLE_BORDER}),
-    sidebar_heading("About & Metadata"),
-    pn.pane.Markdown(
-        f"<div style='width:100%;box-sizing:border-box;font-size:11.5px;color:{APPLE_MUTED};line-height:1.5;"
-        f"background:{APPLE_CARD_ELEVATED};border:1px solid {APPLE_BORDER};border-radius:12px;padding:10px;'>"
-        f"<div style='color:{APPLE_TEXT};font-weight:600;margin-bottom:4px;'>EU Renewable Energy Observatory</div>"
-        f"<div style='margin-bottom:8px;color:#AEAEB2;font-size:11px;'>"
-        f"Interactive visual analytics tracking national renewable energy shares in gross final consumption, "
-        f"annual momentum, and progress against EU policy benchmarks."
-        f"</div>"
-        f"<strong style='color:{APPLE_TEXT};'>Source:</strong> Eurostat (<code>nrg_ind_ren</code>)<br>"
-        f"<strong style='color:{APPLE_TEXT};'>Coverage:</strong> {len(COUNTRIES)} nations · {YEARS[0]}–{YEARS[-1]}<br>"
-        f"<strong style='color:{APPLE_TEXT};'>Metric:</strong> Share in gross final energy (%)<br>"
-        f"<strong style='color:{APPLE_TEXT};'>Course:</strong> Data Visualization Methods<br>"
-        f"<strong style='color:{APPLE_TEXT};'>Institution:</strong> University of Debrecen"
-        f"</div>",
-        width=SIDEBAR_W, margin=(2, 0, 0, 0),
-    ),
-    width=280, styles={"padding": "4px 8px 16px 8px", "box-sizing": "border-box"},
-)
+    sidebar_content = pn.Column(
+        sidebar_heading("Snapshot & Target"),
+        year_slider, map_metric, target_slider,
+        pn.layout.Divider(width=SIDEBAR_W, margin=(8, 0), styles={"border-color": APPLE_BORDER}),
+        sidebar_heading("Comparison"),
+        country_picker, preset_grid,
+        pn.layout.Divider(width=SIDEBAR_W, margin=(10, 0), styles={"border-color": APPLE_BORDER}),
+        sidebar_heading("About & Metadata"),
+        pn.pane.Markdown(
+            f"<div style='width:100%;box-sizing:border-box;font-size:11.5px;color:{APPLE_MUTED};line-height:1.5;"
+            f"background:{APPLE_CARD_ELEVATED};border:1px solid {APPLE_BORDER};border-radius:12px;padding:10px;'>"
+            f"<div style='color:{APPLE_TEXT};font-weight:600;margin-bottom:4px;'>EU Renewable Energy Observatory</div>"
+            f"<div style='margin-bottom:8px;color:#AEAEB2;font-size:11px;'>"
+            f"Interactive visual analytics tracking national renewable energy shares in gross final consumption, "
+            f"annual momentum, and progress against EU policy benchmarks."
+            f"</div>"
+            f"<strong style='color:{APPLE_TEXT};'>Source:</strong> Eurostat (<code>nrg_ind_ren</code>)<br>"
+            f"<strong style='color:{APPLE_TEXT};'>Coverage:</strong> {len(COUNTRIES)} nations · {YEARS[0]}–{YEARS[-1]}<br>"
+            f"<strong style='color:{APPLE_TEXT};'>Metric:</strong> Share in gross final energy (%)<br>"
+            f"<strong style='color:{APPLE_TEXT};'>Course:</strong> Data Visualization Methods<br>"
+            f"<strong style='color:{APPLE_TEXT};'>Institution:</strong> University of Debrecen"
+            f"</div>",
+            width=SIDEBAR_W, margin=(2, 0, 0, 0),
+        ),
+        width=280, styles={"padding": "4px 8px 16px 8px", "box-sizing": "border-box"},
+    )
 
-template = pn.template.FastListTemplate(
-    title="EU Renewable Energy Observatory",
-    header=[], sidebar=[sidebar_content], main=main, theme="dark", theme_toggle=False,
-    accent_base_color=APPLE_BLUE, header_background="#121214", sidebar_width=310,
-)
-template.servable()
+    return pn.template.FastListTemplate(
+        title="EU Renewable Energy Observatory",
+        header=[], sidebar=[sidebar_content], main=main, theme="dark", theme_toggle=False,
+        accent_base_color=APPLE_BLUE, header_background="#121214", sidebar_width=310,
+    )
 
 # ----------------------------------------------------------------------------
-# Localhost Launcher
+# Server & Streamlit Cloud Runtime Handler
 # ----------------------------------------------------------------------------
 def find_free_port(start_port=5006):
-    for p in range(start_port, start_port + 20):
+    for p in range(start_port, start_port + 50):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if s.connect_ex(("127.0.0.1", p)) != 0:
                 return p
@@ -956,12 +948,77 @@ def open_in_chrome(url):
                 pass
     webbrowser.open(url)
 
-if __name__ == "__main__":
+def is_running_in_streamlit():
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        return get_script_run_ctx() is not None
+    except Exception:
+        return False
+
+if is_running_in_streamlit():
+    import streamlit as st
+    import streamlit.components.v1 as components
+
+    st.set_page_config(
+        page_title="EU Renewable Energy Observatory",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+
+    # Remove Streamlit padding/header so the full Panel dashboard fills the screen
+    st.markdown(
+        """
+        <style>
+            #MainMenu, header, footer, [data-testid="stToolbar"] {visibility: hidden; height: 0;}
+            .block-container {padding: 0 !important; max-width: 100% !important;}
+            iframe {border: none !important; width: 100% !important; min-height: 100vh !important;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    @st.cache_resource
+    def start_background_panel_server():
+        port = find_free_port(5006)
+        ready = threading.Event()
+
+        def _serve():
+            pn.serve(
+                build_dashboard,
+                port=port,
+                address="0.0.0.0",
+                show=False,
+                title="EU Renewable Energy Observatory",
+                websocket_origin=["*"],
+                start=True,
+            )
+
+        t = threading.Thread(target=_serve, daemon=True)
+        t.start()
+        for _ in range(40):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("127.0.0.1", port)) == 0:
+                    ready.set()
+                    break
+            time.sleep(0.25)
+        return port
+
+    panel_port = start_background_panel_server()
+    components.iframe(f"http://localhost:{panel_port}", height=1020, scrolling=True)
+
+elif __name__ == "__main__":
     PORT = find_free_port(5006)
     URL = f"http://localhost:{PORT}"
     print(f"\nStarting EU Renewable Energy Dashboard on {URL} ...", flush=True)
     threading.Thread(target=open_in_chrome, args=(URL,), daemon=True).start()
     pn.serve(
-        template, port=PORT, address="127.0.0.1", show=False,
-        title="European Renewable Energy Share", websocket_origin=[f"localhost:{PORT}", f"127.0.0.1:{PORT}"],
+        build_dashboard,
+        port=PORT,
+        address="127.0.0.1",
+        show=False,
+        title="European Renewable Energy Share",
+        websocket_origin=[f"localhost:{PORT}", f"127.0.0.1:{PORT}"],
     )
+else:
+    # Support `panel serve dashboard/Panel.py`
+    build_dashboard().servable()
