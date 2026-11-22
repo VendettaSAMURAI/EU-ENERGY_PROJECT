@@ -79,7 +79,8 @@ st.markdown(f"""
     }}
     .side-label {{ font-size: 13.5px; font-weight: 500; color: {APPLE_TEXT}; margin: 2px 0 6px 0; }}
     .side-label b {{ color: {APPLE_BLUE}; font-weight: 500; }}
-    [data-testid="stSliderThumbValue"], [data-testid="stTickBarMin"], [data-testid="stTickBarMax"] {{ display: none !important; }}
+    [data-testid="stSidebar"] [data-testid="stSliderThumbValue"], [data-testid="stSidebar"] [data-testid="stTickBarMin"], [data-testid="stSidebar"] [data-testid="stTickBarMax"] {{ display: none !important; }}
+    div.stElementContainer:has(iframe[height="0"]) {{ display: none; }}
     {SLIDER_FIX}
 
     /* ---- inputs (dark, consistent, never brown/red) ---- */
@@ -143,34 +144,31 @@ st.markdown(f"""
         padding: 16px 16px 40px 16px !important;
         border-radius: 4px;
     }}
-    [data-baseweb="tab-list"] {{
+    [data-baseweb="tab-list"], [data-testid="stTabs"] [role="tablist"] {{
         gap: 8px;
         background-color: {APPLE_CARD} !important;
         padding: 6px;
         border-radius: 980px;
         border: 1px solid {APPLE_BORDER};
-        margin: 0 auto 20px auto;
+        margin: 0 auto 20px auto !important;
         width: fit-content !important;
         justify-content: center;
     }}
-    [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {{ display: none !important; }}
-    button[data-baseweb="tab"] {{
+    [data-baseweb="tab-highlight"], [data-baseweb="tab-border"],
+    [data-testid="stTabs"] [role="tablist"] > div[aria-hidden="true"] {{ display: none !important; }}
+    button[data-baseweb="tab"], [data-testid="stTabs"] button[role="tab"], button[data-testid="stTab"] {{
         border-radius: 980px !important;
-        color: {APPLE_MUTED} !important;
         font-weight: 500;
-        padding: 6px 18px;
-        height: auto;
+        padding: 6px 18px !important;
+        height: auto !important;
         outline: none !important;
         box-shadow: none !important;
+        border: none !important;
         background: transparent !important;
     }}
-    button[data-baseweb="tab"] p {{ font-size: 13px; }}
-    button[data-baseweb="tab"][aria-selected="true"] {{
-        background-color: {APPLE_CARD_ELEVATED} !important;
-        color: {APPLE_TEXT} !important;
-        font-weight: 600;
-    }}
-    button[data-baseweb="tab"][aria-selected="true"] p {{ color: {APPLE_TEXT} !important; }}
+    button[role="tab"] * {{ color: {APPLE_MUTED} !important; font-size: 13px; }}
+    button[role="tab"][aria-selected="true"] {{ background-color: {APPLE_CARD_ELEVATED} !important; }}
+    button[role="tab"][aria-selected="true"] * {{ color: {APPLE_TEXT} !important; font-weight: 600; }}
     div[class*="st-key-card-"] {{
         background: {APPLE_CARD} !important;
         border: 1px solid {APPLE_BORDER};
@@ -182,6 +180,35 @@ st.markdown(f"""
     }}
 </style>
 """, unsafe_allow_html=True)
+
+# Plotly only re-fits on a window "resize" event. Streamlit does not fire one when the sidebar is
+# opened/closed or a tab is shown, so charts kept their old width. This tiny script fires it.
+try:
+    import streamlit.components.v1 as components
+    components.html("""
+    <script>
+    (function () {
+      const p = window.parent, doc = p.document;
+      const fire = () => { clearTimeout(p.__panelT); p.__panelT = setTimeout(() => p.dispatchEvent(new p.Event('resize')), 80); };
+      if (p.__panelRO) { p.__panelRO.disconnect(); }
+      p.__panelRO = new p.ResizeObserver(fire);
+      ['[data-testid="stMain"]', '[data-testid="stMainBlockContainer"]', '[data-testid="stSidebar"]'].forEach(sel => {
+        const el = doc.querySelector(sel); if (el) p.__panelRO.observe(el);
+      });
+      if (!p.__panelClick) {
+        p.__panelClick = true;
+        doc.addEventListener('click', e => {
+          if (e.target.closest('[role="tab"], [data-testid="stSidebarCollapseButton"], [data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"]')) {
+            setTimeout(fire, 150); setTimeout(fire, 450);
+          }
+        });
+      }
+      fire();
+    })();
+    </script>
+    """, height=0)
+except Exception:
+    pass
 
 # ----------------------------------------------------------------------------
 # Path Resolution & Module Loading
@@ -356,9 +383,9 @@ DEFAULT_SEL = sorted(c for c in ["Germany", "France", "Hungary", "Sweden", "Pola
 def show_plot(fig, key):
     """Render a Plotly figure full-width; works across Streamlit versions."""
     try:
-        st.plotly_chart(fig, width="stretch", key=key, config={"displaylogo": False})
+        st.plotly_chart(fig, width="stretch", key=key, config={"displaylogo": False, "responsive": True})
     except TypeError:
-        st.plotly_chart(fig, use_container_width=True, key=key, config={"displaylogo": False})
+        st.plotly_chart(fig, use_container_width=True, key=key, config={"displaylogo": False, "responsive": True})
 
 def show_table(data, key, **kwargs):
     try:
@@ -503,11 +530,11 @@ def build_movers_dumbbell(yr_win, selected):
     lo = float(min(mdf["v0"].min(), mdf["v1"].min()))
     hi = float(max(mdf["v0"].max(), mdf["v1"].max()))
     fig.update_layout(
-        template="plotly_dark", margin=dict(l=150, r=40, t=90, b=60),
-        title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5, xanchor="center"),
+        template="plotly_dark", margin=dict(l=150, r=40, t=120, b=60),
+        title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5, xanchor="center", y=0.97, yanchor="top"),
         xaxis=dict(title="Renewable Share (%)", ticksuffix="%", range=[max(0, lo - 4), hi + 9], showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
         yaxis=dict(type="category", categoryorder="array", categoryarray=order, tickmode="linear", dtick=1, showgrid=False, automargin=True),
-        legend=dict(orientation="h", x=0.5, xanchor="center", y=1.04, yanchor="bottom", bgcolor="rgba(0,0,0,0)"),
+        legend=dict(orientation="h", x=1, xanchor="right", y=1.0, yanchor="bottom", bgcolor="rgba(0,0,0,0)"),
         height=max(650, 24 * len(order) + 170),
     )
     return apply_apple_plotly_theme(fig, uirev=f"movers-{start_yr}-{end_yr}")
@@ -689,6 +716,20 @@ if "countries" not in st.session_state:
 else:
     st.session_state["countries"] = [c for c in st.session_state["countries"] if c in COUNTRIES]
 
+# Year / metric / target live in the sidebar AND in a slim bar on the Overview tab, so they are
+# still reachable when the sidebar is closed. The two copies are kept in sync by callbacks.
+st.session_state.setdefault("year_val", LATEST)
+st.session_state.setdefault("year_main", st.session_state["year_val"])
+st.session_state.setdefault("metric_val", list(MAP_METRICS.keys())[0])
+st.session_state.setdefault("metric_main", st.session_state["metric_val"])
+st.session_state.setdefault("target_val", 32)
+st.session_state.setdefault("target_main", st.session_state["target_val"])
+
+def _mirror(src_key, dst_key):
+    def _cb():
+        st.session_state[dst_key] = st.session_state[src_key]
+    return _cb
+
 def _set_top_leaders():
     yr = st.session_state.get("year_val", LATEST)
     top = (
@@ -713,13 +754,13 @@ with st.sidebar:
     st.markdown("<div class='side-title'>Snapshot & Target</div>", unsafe_allow_html=True)
 
     st.markdown(f"<div class='side-label'>Year (Map & Ranking): <b>{st.session_state.get('year_val', LATEST)}</b></div>", unsafe_allow_html=True)
-    year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], value=LATEST, key="year_val", label_visibility="collapsed")
+    year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], key="year_val", label_visibility="collapsed", on_change=_mirror("year_val", "year_main"))
 
     st.markdown("<div class='side-label' style='margin-top:14px;'>Map & Ranking Metric</div>", unsafe_allow_html=True)
-    metric_val = st.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_val", label_visibility="collapsed")
+    metric_val = st.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_val", label_visibility="collapsed", on_change=_mirror("metric_val", "metric_main"))
 
     st.markdown(f"<div class='side-label' style='margin-top:14px;'>Policy Target Benchmark (%): <b>{st.session_state.get('target_val', 32)}</b></div>", unsafe_allow_html=True)
-    target_val = st.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, value=32, key="target_val", label_visibility="collapsed")
+    target_val = st.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, key="target_val", label_visibility="collapsed", on_change=_mirror("target_val", "target_main"))
 
     st.markdown("---")
     st.markdown("<div class='side-title'>Comparison</div>", unsafe_allow_html=True)
@@ -761,6 +802,11 @@ elif DATA_YEARS[-1] < TARGET_LAST_YEAR:
 tab_overview, tab_trends, tab_movers, tab_spread, tab_matrix, tab_data = st.tabs(["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Data"])
 
 with tab_overview:
+    with st.container(key="card-controls"):
+        k1, k2, k3 = st.columns([2, 2, 2], gap="medium")
+        k1.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], key="year_main", on_change=_mirror("year_main", "year_val"))
+        k2.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_main", on_change=_mirror("metric_main", "metric_val"))
+        k3.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, key="target_main", on_change=_mirror("target_main", "target_val"))
     col_map, col_bar = st.columns([2, 1], gap="medium")
     with col_map:
         with st.container(key="card-map"):
