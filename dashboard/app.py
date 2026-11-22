@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # ----------------------------------------------------------------------------
-# Page Configuration & Apple Dark Theme Styling
+# Page Configuration & Apple Dark Theme Styling (Matching Panel.py)
 # ----------------------------------------------------------------------------
 st.set_page_config(
     page_title="EU Renewable Energy Observatory",
@@ -35,9 +35,11 @@ st.markdown(f"""
         background-color: {APPLE_BG};
         color: {APPLE_TEXT};
         font-family: {APPLE_FONT};
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.011em;
     }}
     [data-testid="stSidebar"] {{
-        background-color: #141416;
+        background-color: rgba(20, 20, 22, 0.98);
         border-right: 1px solid {APPLE_BORDER};
     }}
     .stTabs [data-baseweb="tab-list"] {{
@@ -47,17 +49,20 @@ st.markdown(f"""
         border-radius: 980px;
         border: 1px solid {APPLE_BORDER};
         margin-bottom: 20px;
+        justify-content: center;
     }}
     .stTabs [data-baseweb="tab"] {{
         border-radius: 980px;
         color: {APPLE_MUTED};
         font-weight: 500;
-        padding: 6px 18px;
+        padding: 7px 18px;
+        font-size: 13px;
     }}
     .stTabs [aria-selected="true"] {{
         background-color: {APPLE_CARD_ELEVATED} !important;
         color: {APPLE_TEXT} !important;
         font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }}
     div.stButton > button {{
         border-radius: 980px;
@@ -67,7 +72,8 @@ st.markdown(f"""
         width: 100%;
         font-weight: 500;
         font-size: 12px;
-        transition: transform 0.15s ease;
+        padding: 6px 10px;
+        transition: transform 0.15s ease, background-color 0.15s ease;
     }}
     div.stButton > button:hover {{
         border-color: rgba(255, 255, 255, 0.25);
@@ -77,6 +83,19 @@ st.markdown(f"""
         background-color: {APPLE_BLUE};
         color: #FFFFFF;
         border-color: {APPLE_BLUE};
+    }}
+    /* Apple Bento Card Container */
+    .apple-bento {{
+        background: {APPLE_CARD};
+        border: 1px solid {APPLE_BORDER};
+        border-radius: 22px;
+        padding: 18px 20px;
+        box-sizing: border-box;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+        margin-bottom: 16px;
+    }}
+    .apple-bento:hover {{
+        border-color: rgba(255, 255, 255, 0.18);
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -145,7 +164,6 @@ def load_dataset():
             df_loaded["is_aggregate"] = df_loaded["geo_code"].astype(str).str.startswith(("EU", "EA"))
         return df_loaded, False
 
-    # Fallback Data Generator for Streamlit Cloud & Offline Environments
     rng = np.random.default_rng(7)
     countries = [
         ("Sweden", "SE"), ("Finland", "FI"), ("Latvia", "LV"), ("Denmark", "DK"),
@@ -264,7 +282,7 @@ def build_map_with_target(year, metric_name, selected, target_pct):
         title_text = f"<b>EUROPEAN RENEWABLE ENERGY SHARE · {year}</b>"
         if target_pct > 0:
             title_text += f"<br><span style='font-size:12.5px;color:{APPLE_GREEN};font-weight:500;'>Policy Target ({target_pct}%): {met_cnt}/{tot_cnt} nations above target</span>"
-        fig.update_layout(title=dict(text=title_text, x=0.5, xanchor="center", font=dict(size=16)), height=820)
+        fig.update_layout(title=dict(text=title_text, x=0.5, xanchor="center", font=dict(size=16)), height=850)
     return fig
 
 def build_ranking_bar(year, metric_name, selected, target_pct):
@@ -298,9 +316,9 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     
     fig.update_layout(
         template="plotly_dark", 
-        margin=dict(l=120, r=40, t=50, b=40), 
-        height=820,
-        title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=15, color=APPLE_TEXT), x=0.5, xanchor="center"), 
+        margin=dict(l=130, r=60, t=55, b=35), 
+        height=850,
+        title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5, xanchor="center"), 
         xaxis=dict(range=[x_lo, x_hi], showgrid=True, gridcolor="rgba(255,255,255,0.06)"), 
         yaxis=dict(showgrid=False)
     )
@@ -325,7 +343,7 @@ def build_movers_dumbbell(yr_win, selected):
         fig.add_trace(go.Scatter(x=[r["v0"], r["v1"]], y=[c, c], mode="lines", line=dict(color=line_col, width=3.8 if is_sel else 2.0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=mdf["v0"], y=mdf["country"], mode="markers", name=f"Start ({start_yr})", marker=dict(size=9, color=APPLE_CARD, line=dict(color="#8E8E93", width=2.2))))
     fig.add_trace(go.Scatter(x=mdf["v1"], y=mdf["country"], mode="markers+text", name=f"End ({end_yr})", text=[f" {d:+.1f} pp" for d in mdf["delta"]], textposition="middle right", textfont=dict(size=11, color="#E5E5EA"), marker=dict(size=11, color=[APPLE_AMBER if c in sel_set else APPLE_BLUE for c in mdf["country"]])))
-    fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=60, b=50), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=650)
+    fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=80, b=65), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b><br><span style='font-size:12px;color:#8E8E93;'>Sorted by Percentage-Point Gain</span>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=660)
     return apply_apple_plotly_theme(fig, uirev=f"movers-{start_yr}-{end_yr}")
 
 def country_stats_table(selected, yr_win, target_pct):
@@ -366,7 +384,7 @@ with st.sidebar:
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Top 5 Leaders"):
+        if st.button("Top 5 Leaders", type="primary"):
             top = d_all[(d_all["year"] == year_val) & d_all["renewable_share_pct"].notna()].sort_values("renewable_share_pct", ascending=False)["country"].head(5).tolist()
             st.session_state["countries"] = top
             st.rerun()
@@ -390,7 +408,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"""
     <div style='font-size:11.5px;color:{APPLE_MUTED};line-height:1.5;background:{APPLE_CARD_ELEVATED};border:1px solid {APPLE_BORDER};border-radius:12px;padding:12px;'>
-        <strong style='color:{APPLE_TEXT};'>EU Renewable Energy Observatory</strong><br><br>
+        <div style='color:{APPLE_TEXT};font-weight:600;margin-bottom:4px;'>EU Renewable Energy Observatory</div>
+        <div style='margin-bottom:8px;color:#AEAEB2;font-size:11px;'>
+            Interactive visual analytics tracking national renewable energy shares in gross final consumption, annual momentum, and progress against EU policy benchmarks.
+        </div>
         <strong>Source:</strong> Eurostat (<code>nrg_ind_ren</code>)<br>
         <strong>Coverage:</strong> {len(COUNTRIES)} nations · {YEARS[0]}–{YEARS[-1]}<br>
         <strong>Institution:</strong> University of Debrecen
@@ -398,7 +419,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
-# Main Content & Tabs
+# Main Content & Bento Card Tabs
 # ----------------------------------------------------------------------------
 if IS_DEMO:
     st.warning("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.")
@@ -408,18 +429,18 @@ tab_overview, tab_trends, tab_movers, tab_spread, tab_matrix, tab_data = st.tabs
 with tab_overview:
     col_map, col_bar = st.columns([2, 1], gap="medium")
     with col_map:
-        st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
         fig_map = build_map_with_target(year_val, metric_val, selected_countries, target_val)
         st.plotly_chart(fig_map, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
     with col_bar:
-        st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
         fig_bar = build_ranking_bar(year_val, metric_val, selected_countries, target_val)
         st.plotly_chart(fig_bar, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_trends:
-    st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
     t_mode = st.selectbox("Trend View Mode", options=TREND_MODES, key="t_mode_sel")
     c1, c2, c3 = st.columns(3)
     s_eu = c1.checkbox("Show EU-27 average line", value=True)
@@ -430,30 +451,32 @@ with tab_trends:
         fig_trend.add_hline(y=target_val, line_dash="dot", line_color=APPLE_GREEN, annotation_text=f"Policy Target ({target_val}%)")
     fig_trend.update_layout(height=600)
     st.plotly_chart(fig_trend, use_container_width=True)
-    
-    st.markdown("---")
-    st.markdown(f"<div style='font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
     stats_df = country_stats_table(selected_countries, (YEARS[0], YEARS[-1]), target_val)
     st.dataframe(stats_df, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_movers:
-    st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
-    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window · Click any point to select & jump to year</div>", unsafe_allow_html=True)
     fig_movers = build_movers_dumbbell((YEARS[0], YEARS[-1]), selected_countries)
     st.plotly_chart(fig_movers, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_spread:
-    st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
     show_pts = st.checkbox("Show all countries as dots", value=True)
+    st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Annual distribution across reporting countries · Gold = selected · Red = 1.5×IQR outliers</div>", unsafe_allow_html=True)
     fig_box = call_viz(obox.create_outlier_box, df, uirev="box-dist", year_range=(YEARS[0], YEARS[-1]), selected_countries=selected_countries, show_all_points=show_pts, include_controls=False)
     fig_box.update_layout(height=600)
     st.plotly_chart(fig_box, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_matrix:
-    st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
     hm_view = st.selectbox("Matrix View", options=HEATMAP_VIEWS)
     hm_only = st.checkbox("Only selected countries", value=False)
     fig_heat = call_viz(hmap.create_heatmap, df, uirev=f"heat-{hm_view}", default_view=hm_view, year_range=(YEARS[0], YEARS[-1]), selected_countries=selected_countries, only_selected=hm_only, include_controls=False)
@@ -462,7 +485,7 @@ with tab_matrix:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_data:
-    st.markdown(f"<div style='background:{APPLE_CARD};border:1px solid {APPLE_BORDER};border-radius:22px;padding:18px;'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='apple-bento'>", unsafe_allow_html=True)
     d_filt = d_all.rename(columns={"renewable_share_pct": "share_pct", "yoy_change": "yoy_pp", "change_since_base": "since_base_pp", "vs_eu_avg": "gap_to_eu27_pp", "eu_avg_pct": "eu27_pct", "year_rank": "rank"})
     keep = ["country", "geo_code", "year", "share_pct", "rank", "yoy_pp", "since_base_pp", "eu27_pct", "gap_to_eu27_pp", "data_flag"]
     table_df = d_filt[keep].round(2).sort_values(["year", "rank"], ascending=[False, True])
