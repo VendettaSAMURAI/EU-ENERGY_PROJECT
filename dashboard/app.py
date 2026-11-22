@@ -29,8 +29,9 @@ APPLE_AMBER = "#FFD60A"
 APPLE_RED = "#FF453A"
 APPLE_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", sans-serif'
 
-# NOTE: cards are real Streamlit containers (st.container(key="card-...")).
-# Streamlit adds the class "st-key-<key>" to them, which the CSS below styles.
+# Cards are real Streamlit containers (st.container(key="card-...")); Streamlit adds the
+# class "st-key-<key>" to them, which the CSS below styles.
+APPLE_PANEL = "#19191A"
 st.markdown(f"""
 <style>
     .stApp {{
@@ -39,9 +40,83 @@ st.markdown(f"""
         font-family: {APPLE_FONT};
         -webkit-font-smoothing: antialiased;
     }}
+    /* ---- top bar with title ---- */
+    header[data-testid="stHeader"] {{
+        background: #0B0B0C;
+        height: 44px;
+        border-bottom: 1px solid {APPLE_BORDER};
+    }}
+    header[data-testid="stHeader"]::after {{
+        content: "EU Renewable Energy Observatory";
+        position: absolute; left: 58px; top: 50%; transform: translateY(-50%);
+        font-size: 14.5px; font-weight: 600; color: {APPLE_TEXT}; pointer-events: none;
+    }}
+    [data-testid="stToolbar"], [data-testid="stDecoration"] {{ display: none; }}
+
+    /* ---- sidebar ---- */
     [data-testid="stSidebar"] {{
         background-color: #141416;
         border-right: 1px solid {APPLE_BORDER};
+    }}
+    [data-testid="stSidebar"][aria-expanded="true"] {{ min-width: 309px; max-width: 309px; }}
+    [data-testid="stSidebarHeader"] {{ height: 44px; min-height: 44px; padding: 0 12px; margin-bottom: 0; }}
+    [data-testid="stSidebarUserContent"] {{ padding: 18px 20px 24px 20px; }}
+    [data-testid="stSidebar"] hr {{ border-color: {APPLE_BORDER}; margin: 14px 0; }}
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {{ font-size: 13px; font-weight: 500; color: {APPLE_TEXT}; }}
+    .side-title {{
+        font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+        color: {APPLE_MUTED}; margin: 6px 0 10px 0;
+    }}
+    .side-label {{ font-size: 13.5px; font-weight: 500; color: {APPLE_TEXT}; margin: 2px 0 -6px 0; }}
+    .side-label b {{ color: {APPLE_BLUE}; font-weight: 500; }}
+    [data-testid="stSliderThumbValue"], [data-testid="stTickBarMin"], [data-testid="stTickBarMax"] {{ display: none; }}
+    [data-testid="stSidebar"] [data-baseweb="select"] > div {{
+        background: {APPLE_CARD}; border: 1px solid {APPLE_BORDER}; border-radius: 10px;
+    }}
+    [data-testid="stSidebar"] [data-baseweb="tag"] {{
+        background: rgba(10, 132, 255, 0.14); border: 1px solid rgba(10, 132, 255, 0.55);
+        border-radius: 4px; color: {APPLE_BLUE};
+    }}
+    [data-testid="stSidebar"] [data-baseweb="tag"] span {{ color: {APPLE_BLUE}; font-size: 12px; }}
+    [data-testid="stSidebar"] [data-testid="stMultiSelect"] [data-baseweb="select"] > div {{
+        min-height: 132px; align-items: flex-start; border-radius: 12px; background: #1A1A1C;
+    }}
+
+    /* ---- buttons ---- */
+    div.stButton > button {{
+        border-radius: 980px;
+        background-color: {APPLE_CARD_ELEVATED};
+        color: {APPLE_TEXT};
+        border: 1px solid {APPLE_BORDER};
+        width: 100%;
+        min-height: 32px;
+        padding: 2px 10px;
+        font-weight: 600;
+        font-size: 12px;
+        transition: transform 0.15s ease;
+    }}
+    div.stButton > button p {{ font-size: 12px; font-weight: 600; }}
+    div.stButton > button:hover {{
+        border-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-1px);
+    }}
+    div.stButton > button[kind="primary"],
+    div.stDownloadButton > button[kind="primary"],
+    .st-key-btn_leaders button {{
+        background-color: {APPLE_BLUE}; color: #FFFFFF; border-color: {APPLE_BLUE};
+    }}
+    .st-key-btn_movers button {{
+        background-color: rgba(48, 209, 88, 0.08); color: {APPLE_GREEN};
+        border-color: rgba(48, 209, 88, 0.45);
+    }}
+
+    /* ---- main panel ---- */
+    [data-testid="stMainBlockContainer"], .block-container {{
+        background: {APPLE_PANEL};
+        max-width: none !important;
+        margin: 76px 14px 0 24px;
+        padding: 16px 16px 40px 16px !important;
+        border-radius: 4px;
     }}
     .stTabs [data-baseweb="tab-list"] {{
         gap: 8px;
@@ -49,39 +124,23 @@ st.markdown(f"""
         padding: 6px;
         border-radius: 980px;
         border: 1px solid {APPLE_BORDER};
-        margin-bottom: 20px;
+        margin: 0 auto 20px auto;
+        width: fit-content;
         justify-content: center;
     }}
+    .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] {{ display: none; }}
     .stTabs [data-baseweb="tab"] {{
         border-radius: 980px;
         color: {APPLE_MUTED};
         font-weight: 500;
+        font-size: 13px;
         padding: 6px 18px;
+        height: auto;
     }}
     .stTabs [aria-selected="true"] {{
         background-color: {APPLE_CARD_ELEVATED} !important;
         color: {APPLE_TEXT} !important;
         font-weight: 600;
-    }}
-    div.stButton > button {{
-        border-radius: 980px;
-        background-color: {APPLE_CARD_ELEVATED};
-        color: {APPLE_TEXT};
-        border: 1px solid {APPLE_BORDER};
-        width: 100%;
-        font-weight: 500;
-        font-size: 12px;
-        transition: transform 0.15s ease;
-    }}
-    div.stButton > button:hover {{
-        border-color: rgba(255, 255, 255, 0.25);
-        transform: translateY(-1px);
-    }}
-    div.stButton > button[kind="primary"],
-    div.stDownloadButton > button[kind="primary"] {{
-        background-color: {APPLE_BLUE};
-        color: #FFFFFF;
-        border-color: {APPLE_BLUE};
     }}
     div[class*="st-key-card-"] {{
         background: {APPLE_CARD} !important;
@@ -137,31 +196,51 @@ except Exception as exc:
 # ----------------------------------------------------------------------------
 # Data Loading & Auto-Generation for Cloud Deployment (2016–2025)
 # ----------------------------------------------------------------------------
-def find_csv():
+REQUIRED_COLS = {"country", "geo_code", "year", "renewable_share_pct"}
+TARGET_LAST_YEAR = 2025
+
+def find_csvs():
     search_dirs = [HERE, PROJECT_ROOT, os.path.join(PROJECT_ROOT, "data"), os.path.join(PROJECT_ROOT, "data", "raw"), os.path.join(PROJECT_ROOT, "data", "processed")]
+    found = []
     for d in search_dirs:
         if not os.path.isdir(d):
             continue
         for fname in os.listdir(d):
             if fname.lower().endswith(".csv") and "renewable" in fname.lower():
-                return os.path.join(d, fname)
-    return None
+                found.append(os.path.join(d, fname))
+    return found
+
+def _normalize(frame):
+    frame = frame.copy()
+    if "is_aggregate" not in frame.columns:
+        frame["is_aggregate"] = frame["geo_code"].astype(str).str.startswith(("EU", "EA"))
+    return frame
+
+def _span(frame):
+    yrs = pd.to_numeric(frame["year"], errors="coerce").dropna()
+    return (int(yrs.max()) if len(yrs) else 0, len(frame))
 
 @st.cache_data
 def load_dataset():
+    # Collect every candidate dataset and keep the one that reaches the latest year,
+    # so an older CSV (e.g. ending in 2023) can never shadow a newer one.
+    candidates = []
     if hasattr(cmap, "load_data"):
         try:
-            df_loaded = cmap.load_data(extra_roots=[HERE, PROJECT_ROOT, os.path.join(PROJECT_ROOT, "data")])
-            return df_loaded, False
+            frame = cmap.load_data(extra_roots=[HERE, PROJECT_ROOT, os.path.join(PROJECT_ROOT, "data")])
+            if REQUIRED_COLS.issubset(frame.columns):
+                candidates.append(_normalize(frame))
         except Exception:
             pass
-
-    csv_path = find_csv()
-    if csv_path:
-        df_loaded = pd.read_csv(csv_path)
-        if "is_aggregate" not in df_loaded.columns:
-            df_loaded["is_aggregate"] = df_loaded["geo_code"].astype(str).str.startswith(("EU", "EA"))
-        return df_loaded, False
+    for path in find_csvs():
+        try:
+            frame = pd.read_csv(path)
+            if REQUIRED_COLS.issubset(frame.columns):
+                candidates.append(_normalize(frame))
+        except Exception:
+            continue
+    if candidates:
+        return max(candidates, key=_span), False
 
     # Fallback Data Generator up to 37 nations and 2016-2025
     rng = np.random.default_rng(7)
@@ -177,7 +256,7 @@ def load_dataset():
         ("North Macedonia", "MK"), ("Bosnia and Herzegovina", "BA"), ("Turkey", "TR"),
         ("United Kingdom", "UK"), ("Cyprus", "CY")
     ]
-    years = list(range(2016, 2026))
+    years = list(range(2016, TARGET_LAST_YEAR + 1))
     rows = []
     for idx, (c, code) in enumerate(countries):
         base = 52 - (idx * 1.0)
@@ -230,9 +309,11 @@ TREND_MODES = getattr(mtrend, "TREND_MODES", ["Absolute Share (%)", "Indexed (Ba
 HEATMAP_VIEWS = getattr(hmap, "HEATMAP_VIEWS", ["Renewable Share (%)", "YoY Change (pp)", "Gap vs EU-27 (pp)"])
 
 COUNTRIES = sorted(d_all["country"].dropna().unique())
-YEARS = sorted(int(y) for y in d_all["year"].dropna().unique())
+DATA_YEARS = sorted(int(y) for y in d_all["year"].dropna().unique())
+YR_FULL = (DATA_YEARS[0], DATA_YEARS[-1])                      # years that actually have data
+YEARS = list(range(min(DATA_YEARS[0], 2016), max(DATA_YEARS[-1], TARGET_LAST_YEAR) + 1))  # slider always reaches 2025
 LATEST = YEARS[-1]
-DEFAULT_SEL = [c for c in ["Germany", "France", "Hungary", "Sweden", "Poland"] if c in COUNTRIES] or COUNTRIES[:5]
+DEFAULT_SEL = sorted(c for c in ["Germany", "France", "Hungary", "Sweden", "Poland"] if c in COUNTRIES) or COUNTRIES[:5]
 
 # ----------------------------------------------------------------------------
 # Helpers
@@ -240,9 +321,9 @@ DEFAULT_SEL = [c for c in ["Germany", "France", "Hungary", "Sweden", "Poland"] i
 def show_plot(fig, key):
     """Render a Plotly figure full-width; works across Streamlit versions."""
     try:
-        st.plotly_chart(fig, width="stretch", key=key)
+        st.plotly_chart(fig, width="stretch", key=key, config={"displaylogo": False})
     except TypeError:
-        st.plotly_chart(fig, use_container_width=True, key=key)
+        st.plotly_chart(fig, use_container_width=True, key=key, config={"displaylogo": False})
 
 def show_table(data, key, **kwargs):
     try:
@@ -426,7 +507,7 @@ def _set_v4():
     st.session_state["countries"] = [c for c in ["Hungary", "Poland", "Czechia", "Slovakia"] if c in COUNTRIES]
 
 def _set_top_movers():
-    lo, hi = YEARS[0], YEARS[-1]
+    lo, hi = YR_FULL
     sub = d_all[d_all["year"].isin([lo, hi])].pivot(index="country", columns="year", values="renewable_share_pct").dropna()
     if not sub.empty and lo != hi:
         st.session_state["countries"] = (sub[hi] - sub[lo]).sort_values(ascending=False).head(5).index.tolist()
@@ -435,17 +516,22 @@ def _clear_all():
     st.session_state["countries"] = []
 
 with st.sidebar:
-    st.markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin-bottom:6px;'>Snapshot & Target</div>", unsafe_allow_html=True)
-    if len(YEARS) > 1:
-        year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], value=LATEST, key="year_val")
-    else:
-        year_val = YEARS[0]
-        st.session_state["year_val"] = year_val
-    metric_val = st.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_val")
-    target_val = st.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, value=32, key="target_val")
+    st.markdown("<div class='side-title'>Snapshot & Target</div>", unsafe_allow_html=True)
+
+    st.markdown(f"<div class='side-label'>Year (Map & Ranking): <b>{st.session_state.get('year_val', LATEST)}</b></div>", unsafe_allow_html=True)
+    year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], value=LATEST, key="year_val", label_visibility="collapsed")
+
+    st.markdown("<div class='side-label' style='margin-top:14px;'>Map & Ranking Metric</div>", unsafe_allow_html=True)
+    metric_val = st.selectbox("Map & Ranking Metric", options=list(MAP_METRICS.keys()), key="metric_val", label_visibility="collapsed")
+
+    st.markdown(f"<div class='side-label' style='margin-top:14px;'>Policy Target Benchmark (%): <b>{st.session_state.get('target_val', 32)}</b></div>", unsafe_allow_html=True)
+    target_val = st.slider("Policy Target Benchmark (%)", min_value=10, max_value=65, value=32, key="target_val", label_visibility="collapsed")
 
     st.markdown("---")
-    st.markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin-bottom:6px;'>Comparison</div>", unsafe_allow_html=True)
+    st.markdown("<div class='side-title'>Comparison</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='side-label' style='margin-bottom:6px;'>Selected Countries</div>", unsafe_allow_html=True)
+    selected_countries = st.multiselect("Selected Countries", options=COUNTRIES, key="countries", label_visibility="collapsed")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -455,37 +541,28 @@ with st.sidebar:
         st.button("Top 5 Movers", on_click=_set_top_movers, key="btn_movers")
         st.button("Clear All", on_click=_clear_all, key="btn_clear")
 
-    selected_countries = st.multiselect("Selected Countries", options=COUNTRIES, key="countries")
-
     n_nations = int(d_all["country"].nunique())
     st.markdown("---")
-    st.markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin-bottom:6px;'>About & Metadata</div>", unsafe_allow_html=True)
+    st.markdown("<div class='side-title'>About & Metadata</div>", unsafe_allow_html=True)
     st.markdown(f"""
     <div style='font-size:11.5px;color:{APPLE_MUTED};line-height:1.5;background:{APPLE_CARD_ELEVATED};border:1px solid {APPLE_BORDER};border-radius:12px;padding:12px;'>
         <strong style='color:{APPLE_TEXT};'>EU Renewable Energy Observatory</strong><br><br>
         Interactive visual analytics tracking national renewable energy shares in gross final consumption, annual momentum, and progress against EU policy benchmarks.<br><br>
-        <strong>Source:</strong> Eurostat (<code>nrg_ind_ren</code>)<br>
-        <strong>Coverage:</strong> {n_nations} nations · {YEARS[0]}–{YEARS[-1]}<br>
-        <strong>Metric:</strong> Share in gross final energy (%)<br>
-        <strong>Course:</strong> Data Visualization Methods<br>
-        <strong>Institution:</strong> University of Debrecen
+        <strong style='color:{APPLE_TEXT};'>Source:</strong> Eurostat (<code style='color:{APPLE_BLUE};background:transparent;'>nrg_ind_ren</code>)<br>
+        <strong style='color:{APPLE_TEXT};'>Coverage:</strong> {n_nations} nations · {YEARS[0]}–{YEARS[-1]}<br>
+        <strong style='color:{APPLE_TEXT};'>Metric:</strong> Share in gross final energy (%)<br>
+        <strong style='color:{APPLE_TEXT};'>Course:</strong> Data Visualization Methods<br>
+        <strong style='color:{APPLE_TEXT};'>Institution:</strong> University of Debrecen
     </div>
     """, unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
-# Main Content & Title Header
+# Main Content (title lives in the top bar, see CSS)
 # ----------------------------------------------------------------------------
-st.markdown(f"""
-<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid {APPLE_BORDER};'>
-    <div>
-        <h1 style='font-size: 22px; font-weight: 600; color: {APPLE_TEXT}; margin: 0;'>EU Renewable Energy Observatory</h1>
-        <p style='font-size: 13px; color: {APPLE_MUTED}; margin: 2px 0 0 0;'>Interactive analytics tracking national renewable shares and policy targets ({YEARS[0]}–{YEARS[-1]})</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
 if IS_DEMO:
     st.warning("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.")
+elif DATA_YEARS[-1] < TARGET_LAST_YEAR:
+    st.warning(f"The loaded dataset only contains data up to **{DATA_YEARS[-1]}**. Add a CSV that includes {DATA_YEARS[-1] + 1}–{TARGET_LAST_YEAR} to see those years.")
 
 tab_overview, tab_trends, tab_movers, tab_spread, tab_matrix, tab_data = st.tabs(["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Data"])
 
@@ -508,7 +585,7 @@ with tab_trends:
         fig_trend = safe_viz(
             mtrend.create_multitrend, df, "Trend chart", 600,
             uirev=f"trend-{t_mode}", selected_countries=selected_countries, trend_mode=t_mode,
-            year_range=(YEARS[0], YEARS[-1]), show_eu=s_eu, include_controls=False,
+            year_range=YR_FULL, show_eu=s_eu, include_controls=False,
         )
         if s_tgt and "Absolute" in t_mode and target_val > 0:
             fig_trend.add_hline(y=target_val, line_dash="dot", line_color=APPLE_GREEN, annotation_text=f"Policy Target ({target_val}%)")
@@ -516,20 +593,20 @@ with tab_trends:
 
     with st.container(key="card-summary"):
         st.markdown(f"<div style='font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
-        stats_df = country_stats_table(selected_countries, (YEARS[0], YEARS[-1]), target_val)
+        stats_df = country_stats_table(selected_countries, YR_FULL, target_val)
         show_table(stats_df, "tbl_summary", hide_index=True)
 
 with tab_movers:
     with st.container(key="card-movers"):
         st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window</div>", unsafe_allow_html=True)
-        show_plot(build_movers_dumbbell((YEARS[0], YEARS[-1]), selected_countries), "plot_movers")
+        show_plot(build_movers_dumbbell(YR_FULL, selected_countries), "plot_movers")
 
 with tab_spread:
     with st.container(key="card-spread"):
         show_pts = st.checkbox("Show all countries as dots", value=True, key="show_pts")
         fig_box = safe_viz(
             obox.create_outlier_box, df, "Outlier box plot", 600,
-            uirev="box-dist", year_range=(YEARS[0], YEARS[-1]), selected_countries=selected_countries,
+            uirev="box-dist", year_range=YR_FULL, selected_countries=selected_countries,
             show_all_points=show_pts, include_controls=False,
         )
         show_plot(fig_box, "plot_box")
@@ -540,7 +617,7 @@ with tab_matrix:
         hm_only = st.checkbox("Only selected countries", value=False, key="hm_only")
         fig_heat = safe_viz(
             hmap.create_heatmap, df, "Heatmap", 650,
-            uirev=f"heat-{hm_view}", default_view=hm_view, year_range=(YEARS[0], YEARS[-1]),
+            uirev=f"heat-{hm_view}", default_view=hm_view, year_range=YR_FULL,
             selected_countries=selected_countries, only_selected=hm_only, include_controls=False,
         )
         show_plot(fig_heat, "plot_heat")
