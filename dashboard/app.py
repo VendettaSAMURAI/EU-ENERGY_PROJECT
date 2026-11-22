@@ -104,6 +104,8 @@ def load_viz_module(mod_name, filename):
     spec = importlib.util.spec_from_file_location(mod_name, fpath)
     if not os.path.isfile(fpath):
         raise FileNotFoundError(f"Visualization module not found: {fpath}")
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load visualization module from: {fpath}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = module
     spec.loader.exec_module(module)
@@ -144,6 +146,7 @@ def load_dataset():
         return df_loaded, False
 
     # Fallback Data Generator for Streamlit Cloud & Offline Environments
+    rng = np.random.default_rng(7)
     countries = [
         ("Sweden", "SE"), ("Finland", "FI"), ("Latvia", "LV"), ("Denmark", "DK"),
         ("Austria", "AT"), ("Portugal", "PT"), ("Croatia", "HR"), ("Lithuania", "LT"),
@@ -155,25 +158,16 @@ def load_dataset():
     ]
     years = list(range(2015, 2024))
     rows = []
-    base_shares = {
-        "SE": 53.9, "FI": 39.3, "LV": 37.1, "DK": 32.2, "AT": 33.6, "PT": 30.6,
-        "HR": 29.4, "LT": 25.8, "EE": 28.6, "RO": 24.5, "ES": 17.3, "EL": 15.7,
-        "SI": 21.9, "BG": 20.4, "DE": 14.8, "IT": 17.1, "FR": 15.2, "SK": 11.5,
-        "CZ": 15.1, "PL": 11.3, "HU": 14.1, "NL": 5.8, "BE": 8.0, "IE": 9.5,
-        "LU": 5.5, "MT": 4.7
-    }
-    
     for idx, (c, code) in enumerate(countries):
-        start_val = base_shares.get(code, 15.0)
+        base = 52 - idx * 1.6
         for y_i, y in enumerate(years):
-            val = round(min(95.0, max(4.0, start_val + y_i * 1.25)), 2)
-            rows.append({"country": c, "geo_code": code, "year": y, "renewable_share_pct": val, "data_flag": "Eurostat", "is_aggregate": False})
+            val = max(4.5, round(base + y_i * rng.uniform(0.5, 1.4), 2))
+            rows.append({"country": c, "geo_code": code, "year": y, "renewable_share_pct": val, "data_flag": "Demo", "is_aggregate": False})
             
     for y_i, y in enumerate(years):
-        rows.append({"country": "European Union - 27 countries (from 2020)", "geo_code": "EU27_2020", "year": y, "renewable_share_pct": round(17.5 + y_i * 0.85, 2), "data_flag": "Eurostat", "is_aggregate": True})
+        rows.append({"country": "European Union - 27 countries (from 2020)", "geo_code": "EU27_2020", "year": y, "renewable_share_pct": round(17.8 + y_i * 0.75, 2), "data_flag": "Demo", "is_aggregate": True})
         
     df_generated = pd.DataFrame(rows)
-    
     proc_dir = os.path.join(PROJECT_ROOT, "data", "processed")
     os.makedirs(proc_dir, exist_ok=True)
     out_csv = os.path.join(proc_dir, "renewable_energy_shares.csv")
@@ -255,6 +249,12 @@ def call_viz(fn, primary_arg, uirev=None, preserve_geo=False, **kwargs):
 # ----------------------------------------------------------------------------
 # Chart Builders
 # ----------------------------------------------------------------------------
+def error_fig(msg):
+    f = go.Figure()
+    f.add_annotation(text=msg, showarrow=False, font=dict(size=14, color=APPLE_MUTED, family=APPLE_FONT))
+    f.update_layout(template="plotly_dark", paper_bgcolor=APPLE_CARD, plot_bgcolor=APPLE_CARD)
+    return f
+
 def build_map_with_target(year, metric_name, selected, target_pct):
     fig = call_viz(cmap.create_choropleth_map, df, preserve_geo=True, year=year, selected_year=year, metric=metric_name, selected_countries=selected, target_pct=target_pct, include_controls=False, uirev=f"map-{metric_name}")
     if isinstance(fig, go.Figure):
@@ -273,7 +273,7 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     suffix = metric_cfg.get("suffix", "")
     sub = d_all[(d_all["year"] == year) & d_all[col].notna()].sort_values(col, ascending=True)
     if sub.empty:
-        return go.Figure()
+        return error_fig(f"No {metric_name} data available for {year}.")
     sel_set = set(selected or [])
     colors = [APPLE_AMBER if c in sel_set else (APPLE_BLUE if v >= 0 else APPLE_RED) for c, v in zip(sub["country"], sub[col])]
     target_x = None
@@ -296,7 +296,6 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     if target_x is not None and target_x > 0:
         fig.add_vline(x=target_x, line_dash="dot", line_color=APPLE_GREEN, line_width=2.0, annotation_text=target_label, annotation_position="top right")
     
-    # FIXED layout dimensions & margins
     fig.update_layout(
         template="plotly_dark", 
         margin=dict(l=120, r=40, t=50, b=40), 
@@ -313,6 +312,8 @@ def build_movers_dumbbell(yr_win, selected):
     df_start = raw[raw["year"] == start_yr].set_index("country")["renewable_share_pct"]
     df_end = raw[raw["year"] == end_yr].set_index("country")["renewable_share_pct"]
     mdf = pd.DataFrame({"v0": df_start, "v1": df_end}).dropna()
+    if mdf.empty:
+        return error_fig(f"No overlapping country data available between {start_yr} and {end_yr}.")
     mdf["delta"] = mdf["v1"] - mdf["v0"]
     mdf = mdf.sort_values("delta", ascending=True).reset_index()
     sel_set = set(selected or [])
@@ -327,9 +328,33 @@ def build_movers_dumbbell(yr_win, selected):
     fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=60, b=50), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=650)
     return apply_apple_plotly_theme(fig, uirev=f"movers-{start_yr}-{end_yr}")
 
+def country_stats_table(selected, yr_win, target_pct):
+    sub = d_all[
+        d_all["country"].isin(selected or [])
+        & d_all["year"].between(yr_win[0], yr_win[1])
+        & d_all["renewable_share_pct"].notna()
+    ].sort_values(["country", "year"])
+    rows = []
+    for c, g in sub.groupby("country"):
+        v0, v1 = float(g["renewable_share_pct"].iloc[0]), float(g["renewable_share_pct"].iloc[-1])
+        rank_val = g["year_rank"].iloc[-1]
+        rows.append({
+            "Country": c,
+            "Start (%)": round(v0, 2),
+            "End (%)": round(v1, 2),
+            "Change (pp)": round(v1 - v0, 2),
+            "Latest Rank": f"#{int(rank_val)}" if pd.notna(rank_val) else "n/a",
+            "Gap vs EU-27 (pp)": round(float(g["vs_eu_avg"].iloc[-1]), 2) if pd.notna(g["vs_eu_avg"].iloc[-1]) else None,
+            f"Vs {target_pct}% Target": round(v1 - target_pct, 2),
+        })
+    return pd.DataFrame(rows)
+
 # ----------------------------------------------------------------------------
-# Sidebar Controls & State
+# Sidebar Controls & State Initialization
 # ----------------------------------------------------------------------------
+if "countries" not in st.session_state:
+    st.session_state["countries"] = DEFAULT_SEL
+
 with st.sidebar:
     st.markdown(f"<div style='font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:{APPLE_MUTED};margin-bottom:6px;'>Snapshot & Target</div>", unsafe_allow_html=True)
     year_val = st.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], value=LATEST)
@@ -351,16 +376,13 @@ with st.sidebar:
     with col2:
         if st.button("Top 5 Movers"):
             lo, hi = YEARS[0], YEARS[-1]
-            sub = df[~df["is_aggregate"]].pivot(index="country", columns="year", values="renewable_share_pct").dropna()
-            if not sub.empty:
+            sub = d_all[d_all["year"].isin([lo, hi])].pivot(index="country", columns="year", values="renewable_share_pct").dropna()
+            if not sub.empty and lo != hi:
                 st.session_state["countries"] = (sub[hi] - sub[lo]).sort_values(ascending=False).head(5).index.tolist()
                 st.rerun()
         if st.button("Clear All"):
             st.session_state["countries"] = []
             st.rerun()
-
-    if "countries" not in st.session_state:
-        st.session_state["countries"] = DEFAULT_SEL
 
     selected_countries = st.multiselect("Selected Countries", options=COUNTRIES, default=st.session_state["countries"])
     st.session_state["countries"] = selected_countries
@@ -408,6 +430,11 @@ with tab_trends:
         fig_trend.add_hline(y=target_val, line_dash="dot", line_color=APPLE_GREEN, annotation_text=f"Policy Target ({target_val}%)")
     fig_trend.update_layout(height=600)
     st.plotly_chart(fig_trend, use_container_width=True)
+    
+    st.markdown("---")
+    st.markdown(f"<div style='font-size:15px;font-weight:600;color:{APPLE_TEXT};margin-bottom:8px;'>Selected Countries Summary</div>", unsafe_allow_html=True)
+    stats_df = country_stats_table(selected_countries, (YEARS[0], YEARS[-1]), target_val)
+    st.dataframe(stats_df, use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_movers:
