@@ -65,7 +65,7 @@ def enrich_country_metrics(df):
         df_raw_countries["renewable_share_pct"] - df_raw_countries["eu_avg_pct"]
     )
 
-    # Build a dense (year x country) grid so every frame has all 37 countries in identical order
+    # Build a dense (year x country) grid so every frame has all countries in identical order
     grid = pd.MultiIndex.from_product(
         [all_years, all_countries], names=["year", "country"]
     ).to_frame(index=False)
@@ -112,13 +112,12 @@ def enrich_country_metrics(df):
 def build_header_html(year, eu_val, leader_country, leader_val, count_countries, min_year, max_year):
     eu_text = f"{eu_val:.2f}%" if pd.notna(eu_val) else "N/A"
     return (
-        f"<b style='font-size:21px; letter-spacing:0.5px; color:#F8FAFC;'>"
+        f"<b style='font-size:19px; letter-spacing:0.5px; color:#F8FAFC;'>"
         f"EUROPEAN RENEWABLE ENERGY SHARE · <span style='color:#38BDF8;'>{year}</span></b><br>"
-        f"<span style='font-size:13px; color:#94A3B8;'>"
+        f"<span style='font-size:12px; color:#94A3B8;'>"
         f"EU-27 Avg: <b style='color:#38BDF8;'>{eu_text}</b>  ·  "
         f"Leader: <b style='color:#4ADE80;'>{leader_country} ({leader_val:.1f}%)</b>  ·  "
-        f"Reporting Nations: <b style='color:#E2E8F0;'>{count_countries}</b>  ·  "
-        f"<span style='color:#64748B;'>Range {min_year}–{max_year} · Use ← / → Keys or Drag Timeline</span>"
+        f"Reporting Nations: <b style='color:#E2E8F0;'>{count_countries}</b>"
         f"</span>"
     )
 
@@ -154,8 +153,8 @@ def make_data_trace(sub_df, hover_tmpl):
             x=0.985,
             y=0.52,
             xanchor="right",
-            thickness=16,
-            len=0.52,
+            thickness=15,
+            len=0.5,
             ticksuffix="%",
             bgcolor="#0F172A",
             bordercolor="#334155",
@@ -164,10 +163,14 @@ def make_data_trace(sub_df, hover_tmpl):
     )
 
 
-def create_choropleth_map(df):
+def create_choropleth_map(df, year=None, selected_year=None, metric=None, selected_countries=None, target_pct=None, include_controls=True, uirev=None):
     df_countries, min_year = enrich_country_metrics(df)
     all_years = sorted(df_countries["year"].unique())
     max_year = int(all_years[-1])
+
+    target_year = int(year or selected_year or max_year)
+    if target_year not in all_years:
+        target_year = max_year
 
     # Precompute yearly summary stats from valid rows only
     valid_df = df_countries.dropna(subset=["renewable_share_pct"])
@@ -185,14 +188,12 @@ def create_choropleth_map(df):
         "──────────────────────────────<br>"
         "Renewable Share: <b style='color:#38BDF8;'>%{customdata[1]}</b><br>"
         "European Rank: <b>%{customdata[2]}</b><br>"
-        "vs. EU-27 Avg: <b>%{customdata[3]}</b><br>"
+        "vs. EU-27 Avg: <b style='color:#38BDF8;'>%{customdata[3]}</b><br>"
         "YoY Change: <b>%{customdata[4]}</b><br>"
         f"Change Since {min_year}: <b>%{{customdata[5]}}</b><br>"
         "Data Status: %{customdata[6]}<extra></extra>"
     )
 
-    # Trace 0 (BOTTOM LAYER): All 48 European countries in dark slate (#1E293B)
-    # Includes Georgia + all 37 dataset countries + UK, Switzerland, Ukraine, Belarus, Russia, etc.
     all_europe_countries = sorted(
         list(set(df_countries["country"].unique()).union(set(NON_REPORTING_EUROPE)))
     )
@@ -212,23 +213,22 @@ def create_choropleth_map(df):
         name="Europe Base Layer",
     )
 
-    # Trace 1 (TOP LAYER): Initial year colored choropleth
-    init_sub = df_countries[df_countries["year"] == min_year]
-    init_data_trace = make_data_trace(init_sub, hover_tmpl)
+    sub = df_countries[df_countries["year"] == target_year]
+    data_trace = make_data_trace(sub, hover_tmpl)
 
-    fig = go.Figure(data=[base_trace, init_data_trace])
+    fig = go.Figure(data=[base_trace, data_trace])
 
-    # Build animation frames updating Trace 1 and the dynamic KPI header
+    # Build animation frames & slider steps for standalone runner support
     frames = []
     slider_steps = []
     for yr in all_years:
         yr_int = int(yr)
-        sub = df_countries[df_countries["year"] == yr_int]
+        frame_sub = df_countries[df_countries["year"] == yr_int]
         frames.append(
             go.Frame(
                 name=str(yr_int),
                 traces=[1],
-                data=[make_data_trace(sub, hover_tmpl)],
+                data=[make_data_trace(frame_sub, hover_tmpl)],
                 layout=go.Layout(
                     title=dict(
                         text=build_header_html(
@@ -262,66 +262,56 @@ def create_choropleth_map(df):
 
     fig.frames = frames
 
-    # Natural, balanced widescreen European projection (Kavrayskiy VII) including Georgia
-    fig.update_geos(
-        scope="world",
-        projection_type="kavrayskiy7",
-        resolution=50,
-        visible=False,
-        showland=False,
-        showcountries=False,
-        showcoastlines=False,
-        showocean=False,
-        showlakes=False,
-        domain=dict(x=[0.0, 1.0], y=[0.0, 1.0]),
-        lataxis_range=[34.5, 71.2],
-        lonaxis_range=[-24.5, 47.5],
-        fitbounds=False,
-        bgcolor="#0B1120",
-    )
-
     initial_header = build_header_html(
-        min_year,
-        eu_by_year.get(min_year),
-        top_by_year[min_year]["country"],
-        top_by_year[min_year]["renewable_share_pct"],
-        count_by_year[min_year],
+        target_year,
+        eu_by_year.get(target_year),
+        top_by_year[target_year]["country"],
+        top_by_year[target_year]["renewable_share_pct"],
+        count_by_year[target_year],
         min_year,
         max_year,
     )
 
-    fig.update_layout(
+    # Dynamic unique uirevision bound to year/metric to flush stale hover caches
+    active_uirev = uirev if uirev else f"map-year-{target_year}"
+
+    layout_kwargs = dict(
         template="plotly_dark",
-        paper_bgcolor="#0B1120",
-        plot_bgcolor="#0B1120",
-        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        paper_bgcolor="#1C1C1E",
+        plot_bgcolor="#1C1C1E",
+        margin={"r": 20, "t": 75, "l": 20, "b": 80},  # Balanced margins to fit map and slider without squishing
         autosize=True,
         showlegend=False,
-        font=dict(size=14, color="#F8FAFC"),
+        uirevision=active_uirev,
+        font=dict(size=13, color="#F8FAFC"),
         title=dict(
             text=initial_header,
             x=0.02,
-            y=0.97,
+            y=0.96,
             xanchor="left",
             yanchor="top",
         ),
         hoverlabel=dict(
-            bgcolor="#0F172A",
+            bgcolor="#2C2C2E",
             bordercolor="#38BDF8",
-            font_size=14,
+            font_size=13,
             font_family="Arial",
             font_color="#F8FAFC",
             align="left",
         ),
-        sliders=[
+    )
+
+    if include_controls:
+        active_step_idx = all_years.index(target_year) if target_year in all_years else 0
+        layout_kwargs["sliders"] = [
             dict(
-                active=0,
+                active=active_step_idx,
                 steps=slider_steps,
-                x=0.06,
-                y=0.025,
-                yanchor="bottom",
-                len=0.88,
-                pad={"t": 6, "b": 6},
+                x=0.05,
+                y=-0.08,  # Perfectly placed right below the map area inside the bottom margin
+                yanchor="top",
+                len=0.90,
+                pad={"t": 10, "b": 10},
                 bgcolor="#1E293B",
                 activebgcolor="#38BDF8",
                 bordercolor="#38BDF8",
@@ -339,10 +329,53 @@ def create_choropleth_map(df):
                 ),
                 transition=dict(duration=250, easing="cubic-in-out"),
             )
-        ],
+        ]
+
+    fig.update_layout(**layout_kwargs)
+
+    # Configured with clean Mercator scaling so Europe fills the container naturally like your reference screenshot
+    fig.update_geos(
+        scope="europe",
+        projection_type="mercator",
+        center=dict(lat=51.5, lon=10.0),
+        projection_scale=2.35,  # Adjusted scale to match your reference layout proportions perfectly
+        resolution=50,
+        visible=False,
+        showland=False,
+        showcountries=False,
+        showcoastlines=False,
+        showocean=False,
+        showlakes=False,
+        bgcolor="#1C1C1E",
     )
 
     return fig
+
+
+def load_data(extra_roots=None):
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+    search_roots = [base_dir, downloads_dir]
+    if extra_roots:
+        search_roots.extend(extra_roots)
+
+    processed_path = find_file("renewable_energy_shares.csv", search_roots)
+    raw_path = find_file("nrg_ind_ren$defaultview_linear_2_0.csv", search_roots)
+
+    if processed_path:
+        df = pd.read_csv(processed_path)
+        if 2015 not in df["year"].unique() and raw_path:
+            df_raw_clean = clean_raw_eurostat(raw_path)
+            if 2015 in df_raw_clean["year"].unique():
+                df = df_raw_clean
+                df.to_csv(processed_path, index=False)
+        return df
+    elif raw_path:
+        return clean_raw_eurostat(raw_path)
+    else:
+        raise FileNotFoundError(
+            f"Neither renewable_energy_shares.csv nor the raw Eurostat CSV was found."
+        )
 
 
 def find_file(filename, search_roots):
@@ -374,68 +407,3 @@ def clean_raw_eurostat(raw_path):
     df["is_aggregate"] = df["geo_code"].isin(["EU27_2020", "EA19", "EA20"])
     df["country"] = df["country"].str.replace("*", "", regex=False).str.strip()
     return df
-
-
-if __name__ == "__main__":
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
-
-    processed_path = find_file("renewable_energy_shares.csv", [base_dir, downloads_dir])
-    raw_path = find_file("nrg_ind_ren$defaultview_linear_2_0.csv", [base_dir, downloads_dir])
-
-    if processed_path:
-        df = pd.read_csv(processed_path)
-        if 2015 not in df["year"].unique() and raw_path:
-            df_raw_clean = clean_raw_eurostat(raw_path)
-            if 2015 in df_raw_clean["year"].unique():
-                df = df_raw_clean
-                df.to_csv(processed_path, index=False)
-    elif raw_path:
-        df = clean_raw_eurostat(raw_path)
-    else:
-        raise FileNotFoundError(
-            f"Neither renewable_energy_shares.csv nor the raw Eurostat CSV was found inside {base_dir} or {downloads_dir}."
-        )
-
-    fig = create_choropleth_map(df)
-
-    output_html = os.path.join(os.path.dirname(__file__), "choropleth_map_fullscreen.html")
-    html_str = fig.to_html(
-        full_html=True,
-        auto_play=False,
-        default_width="100vw",
-        default_height="100vh",
-        config={"scrollZoom": True, "responsive": True, "displayModeBar": False},
-    )
-
-    # Enable Left/Right arrow key navigation across years
-    interactive_script = """
-    <script>
-    document.addEventListener('keydown', function(e) {
-        const gd = document.querySelector('.plotly-graph-div');
-        if (!gd || !gd._transitionData || !gd._transitionData._frames) return;
-        const frames = gd._transitionData._frames.map(f => f.name);
-        const current = gd.layout.sliders && gd.layout.sliders[0] ? frames[gd.layout.sliders[0].active] : frames[0];
-        let idx = frames.indexOf(current);
-        if (e.key === 'ArrowRight' && idx < frames.length - 1) idx++;
-        else if (e.key === 'ArrowLeft' && idx > 0) idx--;
-        else return;
-        Plotly.animate(gd, [frames[idx]], {
-            frame: {duration: 250, redraw: true},
-            mode: 'immediate',
-            transition: {duration: 250, easing: 'cubic-in-out'}
-        });
-    });
-    </script>
-    </body>
-    """
-
-    html_str = html_str.replace(
-        "<body>",
-        '<body style="margin:0; padding:0; width:100vw; height:100vh; background-color:#0B1120; overflow:hidden;">',
-    ).replace("</body>", interactive_script)
-
-    with open(output_html, "w", encoding="utf-8") as f:
-        f.write(html_str)
-
-    webbrowser.open("file://" + os.path.abspath(output_html))
