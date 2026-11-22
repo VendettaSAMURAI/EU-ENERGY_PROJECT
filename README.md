@@ -1,6 +1,6 @@
-# European Union Renewable Energy Dashboard 
+# European Union Renewable Energy Observatory
 
-Interactive dashboard on electricity demand, generation mix, renewables and prices in seven EU countries, 2022 to 2025.
+Interactive dashboard tracking electricity demand, generation mix, renewables, and prices across European Union member states from 2022 to 2025.
 
 Project work for **Data Visualization Methods (INMAA0105L-01/26f)**, MSc Data Science, University of Debrecen.
 
@@ -9,92 +9,92 @@ Project work for **Data Visualization Methods (INMAA0105L-01/26f)**, MSc Data Sc
 - Aviral Birthare
 - Venkatachalamoorthy Jagadish
 
-## Overview
-Europe’s power system is changing fast. The 2022 energy crisis pushed prices to record highs, solar and wind capacity keeps growing, and hours with negative prices have become common. This dashboard lets you explore the European renewable energy transition hour by hour, from 2022 to 2025, a period that spans the crisis, the recovery and the solar boom to the all renewable energy resources including thermal , nuclear & wind energy.
+---
 
-To capture the diversity of Europe’s power systems, the analysis uses seven representative countries: Hungary (our host country) and all 27 nations of European union.
+## Overview
+Europe’s power system is evolving rapidly. The 2022 energy crisis pushed prices to record highs, solar and wind capacity continues to expand, and hours with negative electricity prices have become increasingly common. This dashboard allows you to explore the European renewable energy transition hour by hour from 2022 to 2025—a transformative period spanning the energy crisis, market recovery, and the unprecedented solar boom across renewable and low-carbon resources (including solar, wind, hydro, nuclear, and thermal generation).
+
+To capture the diversity of Europe’s energy landscape, the analysis integrates comprehensive Eurostat datasets for all EU member states alongside granular hourly data for key representative bidding zones and countries, with a special focus on Hungary (our host country).
+
+---
 
 ## Analytical Questions
-1.Demand patterns: How does electricity demand vary by hour, weekday and season across Europe, and when do the peaks occur?
-2.Country comparison: How do different power systems (hydro, nuclear, coal, wind, solar) differ in consumption and generation mix?
-3.Renewables: How has the renewable share of generation grown across Europe from 2022 to 2025, and how well does renewable output cover demand?
-4.Prices: Do hours with high renewable generation have lower or negative prices, and how does this relationship differ between countries?
+1. **Demand Patterns:** How does electricity demand vary by hour, weekday, and season across Europe, and when do peak loads occur?
+2. **Country Comparison:** How do different national power systems (hydro, nuclear, coal, wind, solar) differ in their overall consumption and generation mix?
+3. **Renewables Growth:** How has the renewable share of generation grown across Europe from 2022 to 2025, and how effectively does renewable output cover demand?
+4. **Price Dynamics:** Do hours with high renewable generation correlate with lower or negative prices, and how does this relationship differ across countries?
 
-Key findings per question: [docs/insights.md](docs/insights.md).
+*Detailed key findings per question can be found in [docs/insights.md](docs/insights.md).*
+
+---
 
 ## Visualizations
-Built with the PyViz stack (** Bokeh**). Chart types were chosen per question, not for variety:
+Built with the PyViz stack (**Panel** and **Plotly**). Chart types were intentionally selected to directly answer each analytical question rather than for visual variety:
 
-| Question | Charts |
-|---|---|
-| 1 Demand | hour × weekday heatmap, calendar heatmap, daily profile per season |
-| 2 Countries | choropleth map, ranked dot and dumbbell chart, generation mix bars per country |
-| 3 Renewables | stacked generation mix with load, country × month heatmap, duck curve, coverage duration curve |
-| 4 Prices | violin plots, price duration curve, hexbin of renewable share (or residual load) vs price, negative-price heatmap |
+| Question | Charts & Visualizations |
+| :--- | :--- |
+| **1. Demand** | Hour × weekday heatmap, calendar heatmap, daily profile per season |
+| **2. Countries** | Choropleth map, ranked dot and dumbbell chart, generation mix bars per country |
+| **3. Renewables** | Stacked generation mix with load, country × month heatmap, duck curve, coverage duration curve |
+| **4. Prices** | Violin plots, price duration curve, hexbin of renewable share (or residual load) vs. price, negative-price heatmap |
 
-All charts share one dark theme and one colour per energy source, checked for colour-blind safety ([docs/visual_style.md](docs/visual_style.md)). How to use the chart functions: [docs/charts.md](docs/charts.md).
+All charts share a unified dark theme and a consistent color palette per energy source, rigorously checked for color-blind safety ([docs/visual_style.md](docs/visual_style.md)). Detailed documentation on chart functions is available in [docs/charts.md](docs/charts.md).
+
+---
 
 ## Data Sources
 | Dataset | Source | Licence | Accessed |
-|---|---|---|---|
-| Hourly / 15-min generation by source and load, 7 countries | [Energy-Charts API](https://api.energy-charts.info), Fraunhofer ISE (`public_power`) | Energy-Charts terms of use, see [energy-charts.info](https://www.energy-charts.info) | November 2026 |
-| Day-ahead prices, bidding zones HU, DE-LU, AT, FR, PL, DK1, DK2 | Energy-Charts API (`price`), data from Bundesnetzagentur / SMARD.de | CC BY 4.0 | November 2026 |
-| Day-ahead prices, bidding zone ES | Energy-Charts API (`price`), market data from EPEX SPOT SE | Private and internal use only; no external or commercial use (licence note in the API response) | November 2026 |
-| Renewable energy share (all energy uses), annual | [Eurostat `nrg_ind_ren`](https://ec.europa.eu/eurostat/databrowser/view/nrg_ind_ren/default/table) | Eurostat reuse policy (free reuse with attribution) | October 2026 |
-| Country borders for the map (1:20 million, 2020) | [Eurostat GISCO](https://gisco-services.ec.europa.eu/distribution/v2/countries/) | © EuroGeographics for the administrative boundaries | November 2026 |
+| :--- | :--- | :--- | :--- |
+| **Hourly / 15-min generation by source & load** (7 countries) | [Energy-Charts API](https://api.energy-charts.info), Fraunhofer ISE (`public_power`) | Energy-Charts terms of use ([energy-charts.info](https://www.energy-charts.info)) | November 2026 |
+| **Day-ahead prices** (bidding zones: HU, DE-LU, AT, FR, PL, DK1, DK2) | Energy-Charts API (`price`), data from Bundesnetzagentur / SMARD.de | CC BY 4.0 | November 2026 |
+| **Day-ahead prices** (bidding zone: ES) | Energy-Charts API (`price`), market data from EPEX SPOT SE | Private and internal use only; no external/commercial use | November 2026 |
+| **Renewable energy share** (all energy uses, annual) | [Eurostat `nrg_ind_ren`](https://ec.europa.eu/eurostat/databrowser/view/nrg_ind_ren/default/table) | Eurostat reuse policy (free reuse with attribution) | October 2026 |
+| **Country administrative borders** (1:20M, 2020) | [Eurostat GISCO](https://gisco-services.ec.europa.eu/distribution/v2/countries/) | © EuroGeographics | November 2026 |
 
-Planned: Eurostat population (`demo_pjan`) for per-capita consumption.
+*(Planned: Eurostat population metrics (`demo_pjan`) for per-capita consumption analysis).*
 
-Raw data is not stored in Git. Every file is downloaded by a script in `src/data/`, so the dataset can be rebuilt from the sources.
+Raw data is excluded from Git. Every dataset is automatically downloaded via scripts in `src/data/` to ensure full reproducibility from primary sources.
 
-## Data Preparation
-- **Harmonised resolution:** generation, load and prices come in mixed 15-minute and hourly resolution; everything is resampled to hourly means (for MW, the hourly mean equals MWh).
-- **Time:** all timestamps in UTC (no daylight-saving gaps or duplicates); local time is kept for hour-of-day and weekday patterns.
-- **Complete calendar:** each country has exactly 35,064 hours, so gaps are explicit.
-- **Missing values:** gaps up to 3 hours interpolated (206 values); long gaps in a generation source set to 0 where the source produced nothing (e.g. German nuclear after the April 2023 shutdown); missing load (54 hours, mostly the Iberian blackout of 28 April 2025) left missing and flagged.
-- **Bidding zones:** Germany uses DE-LU; Denmark's price is the mean of DK1 and DK2. Negative prices are kept: they are real.
-- **Derived variables:** 12 generation categories, renewable share of load and of generation, residual load, peak/off-peak flag, season, weekday.
-- **Validation:** 14 automated checks on the processed data, e.g. no duplicate hours, plausible annual consumption per country.
+---
 
-Details: [docs/data_preparation.md](docs/data_preparation.md). Column definitions: [docs/data_contract.md](docs/data_contract.md).
+## Data Preparation & Engineering
+- **Harmonised Resolution:** Mixed 15-minute and hourly generation, load, and price feeds are resampled to hourly means (for MW power, the hourly mean equals MWh energy).
+- **Time Harmonisation:** All timestamps are standardized to UTC (eliminating daylight-saving gaps or duplicates), while local time is preserved for analyzing hour-of-day and weekday behavioral patterns.
+- **Complete Calendar:** Each country's dataset contains exactly 35,064 hours, making temporal data gaps explicit.
+- **Missing Value Handling:** Short gaps up to 3 hours are linearly interpolated (206 values); extended gaps for decommissioned sources are set to 0 where appropriate (e.g., German nuclear post-April 2023 shutdown); missing load data (54 hours, primarily during the Iberian blackout of April 28, 2025) remains explicitly flagged as missing.
+- **Bidding Zones:** Germany uses `DE-LU`; Danish pricing represents the mean of `DK1` and `DK2`. Negative market prices are preserved as genuine economic signals.
+- **Derived Features:** Includes 12 distinct generation categories, renewable shares of load and generation, residual load, peak/off-peak indicators, seasons, and weekday flags.
+- **Validation:** 14 automated data quality checks are implemented (e.g., verifying zero duplicate timestamps and plausible annual consumption bounds per country).
+##############################################################################################################################################################################################################################
+Running the Dashboard
+Launch the interactive local Panel server:
+
+Bash
+panel serve dashboard/app.py --show
+---
 
 ## Project Structure
-```
+```text
 data/
-  raw/            original downloads, never modified (not in Git)
-  interim/        intermediate outputs
-  processed/      final, dashboard-ready data (Parquet)
-notebooks/        exploratory analysis
+  raw/            Original downloads, never modified (git-ignored)
+  interim/        Intermediate processed outputs
+  processed/      Final, dashboard-ready data (Parquet format)
+notebooks/        Exploratory data analysis and prototyping
 src/
-  data/           download and cleaning scripts
-  features/       derived variables
-  viz/            chart functions and shared style
-dashboard/        Panel app
-docs/             data contract, preparation, chart guide, visual style, insights
-reports/figures/  exported figures
-tests/            data checks and chart tests
-```
+  data/           Data ingestion and cleaning scripts
+  features/       Feature engineering and derived variables
+  viz/            Chart generation functions and theme definitions
+dashboard/        Panel application script
+docs/             Comprehensive documentation (data contract, prep, chart guide, styling, insights)
+reports/figures/  Exported report figures
+tests/            Automated data validation checks and chart unit tests
 
-## Setup
-Python 3.12 or 3.13 recommended.
-```bash
+
+##############################################################################################################################################################################################################################
 python -m venv venv
 venv\Scripts\activate            # macOS / Linux: source venv/bin/activate
 pip install -r requirements.txt
-```
 
-## Building the Data
-Run from the repo root. The downloads are only needed once.
-```bash
-python src/data/download_energy_charts.py      # Energy-Charts raw data (60 files, ~100 MB, a few minutes)
-python src/data/download_gisco.py              # map borders (1.9 MB)
-python src/data/clean_energy_charts.py         # raw -> data/interim/
-python src/features/build_features.py          # interim -> data/processed/electricity_hourly.parquet
-python src/data/clean_eurostat_renewables.py   # Eurostat -> data/processed/
-pytest tests/                                  # data checks and chart tests
-```
+Running the Dashboard
+Launch the interactive local Panel server:
 
-## Running the Dashboard
-```bash
-panel serve dashboard/app.py --show
-```
