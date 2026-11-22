@@ -144,31 +144,22 @@ st.markdown(f"""
         padding: 16px 16px 40px 16px !important;
         border-radius: 4px;
     }}
-    [data-baseweb="tab-list"], [data-testid="stTabs"] [role="tablist"] {{
-        gap: 8px;
-        background-color: {APPLE_CARD} !important;
-        padding: 6px;
-        border-radius: 980px;
-        border: 1px solid {APPLE_BORDER};
-        margin: 0 auto 20px auto !important;
-        width: fit-content !important;
-        justify-content: center;
+    /* ---- pill navigation (replaces st.tabs: only the active view is rendered, so charts always get the right width) ---- */
+    div[class*="st-key-nav"] [role="radiogroup"] {{
+        display: flex; flex-wrap: nowrap; justify-content: center; gap: 8px;
+        background: {APPLE_CARD}; padding: 6px; border-radius: 980px;
+        border: 1px solid {APPLE_BORDER}; width: fit-content; margin: 0 auto 20px auto;
     }}
-    [data-baseweb="tab-highlight"], [data-baseweb="tab-border"],
-    [data-testid="stTabs"] [role="tablist"] > div[aria-hidden="true"] {{ display: none !important; }}
-    button[data-baseweb="tab"], [data-testid="stTabs"] button[role="tab"], button[data-testid="stTab"] {{
-        border-radius: 980px !important;
-        font-weight: 500;
-        padding: 6px 18px !important;
-        height: auto !important;
-        outline: none !important;
-        box-shadow: none !important;
-        border: none !important;
-        background: transparent !important;
+    div[class*="st-key-nav"] [data-testid="stWidgetLabel"] {{ display: none; }}
+    div[class*="st-key-nav"] label {{
+        margin: 0 !important; padding: 6px 18px !important; border-radius: 980px;
+        background: transparent; cursor: pointer; transition: background 0.15s ease;
     }}
-    button[role="tab"] * {{ color: {APPLE_MUTED} !important; font-size: 13px; }}
-    button[role="tab"][aria-selected="true"] {{ background-color: {APPLE_CARD_ELEVATED} !important; }}
-    button[role="tab"][aria-selected="true"] * {{ color: {APPLE_TEXT} !important; font-weight: 600; }}
+    div[class*="st-key-nav"] label > div:first-of-type {{ display: none !important; }}   /* radio circle */
+    div[class*="st-key-nav"] label p {{ color: {APPLE_MUTED} !important; font-size: 13px; font-weight: 500; margin: 0; }}
+    div[class*="st-key-nav"] label:hover p {{ color: {APPLE_TEXT} !important; }}
+    div[class*="st-key-nav"] label:has(input:checked) {{ background: {APPLE_CARD_ELEVATED}; }}
+    div[class*="st-key-nav"] label:has(input:checked) p {{ color: {APPLE_TEXT} !important; font-weight: 600; }}
     div[class*="st-key-card-"] {{
         background: {APPLE_CARD} !important;
         border: 1px solid {APPLE_BORDER};
@@ -198,7 +189,7 @@ try:
       if (!p.__panelClick) {
         p.__panelClick = true;
         doc.addEventListener('click', e => {
-          if (e.target.closest('[role="tab"], [data-testid="stSidebarCollapseButton"], [data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"]')) {
+          if (e.target.closest('[data-testid="stRadio"], [data-testid="stSidebarCollapseButton"], [data-testid="stExpandSidebarButton"], [data-testid="collapsedControl"]')) {
             setTimeout(fire, 150); setTimeout(fire, 450);
           }
         });
@@ -799,9 +790,11 @@ if IS_DEMO:
 elif DATA_YEARS[-1] < TARGET_LAST_YEAR:
     st.warning(f"The loaded dataset only contains data up to **{DATA_YEARS[-1]}**. Add a CSV that includes {DATA_YEARS[-1] + 1}–{TARGET_LAST_YEAR} to see those years.")
 
-tab_overview, tab_trends, tab_movers, tab_spread, tab_matrix, tab_data = st.tabs(["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Data"])
+NAV_ITEMS = ["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Data"]
+with st.container(key="nav"):
+    nav = st.radio("View", NAV_ITEMS, horizontal=True, key="nav_tab", label_visibility="collapsed")
 
-with tab_overview:
+if nav == "Overview":
     with st.container(key="card-controls"):
         k1, k2, k3 = st.columns([2, 2, 2], gap="medium")
         k1.slider("Year (Map & Ranking)", min_value=YEARS[0], max_value=YEARS[-1], key="year_main", on_change=_mirror("year_main", "year_val"))
@@ -815,7 +808,7 @@ with tab_overview:
         with st.container(key="card-ranking"):
             show_plot(build_ranking_bar(year_val, metric_val, selected_countries, target_val), "plot_ranking")
 
-with tab_trends:
+if nav == "Trends":
     with st.container(key="card-trend"):
         t_mode = st.selectbox("Trend View Mode", options=TREND_MODES, key="t_mode_sel")
         c1, c2, c3 = st.columns(3)
@@ -839,12 +832,12 @@ with tab_trends:
         stats_df = country_stats_table(selected_countries, YR_FULL, target_val)
         show_table(stats_df, "tbl_summary", hide_index=True)
 
-with tab_movers:
+if nav == "Movers":
     with st.container(key="card-movers"):
         st.markdown(f"<div style='text-align:center;color:{APPLE_MUTED};font-size:13px;margin-bottom:6px;'>Hollow dot = start of window · Filled dot = end of window</div>", unsafe_allow_html=True)
         show_plot(build_movers_dumbbell(YR_FULL, selected_countries), "plot_movers")
 
-with tab_spread:
+if nav == "Spread & Outliers":
     with st.container(key="card-spread"):
         show_pts = st.checkbox("Show all countries as dots", value=True, key="show_pts")
         if USE_MODULE_CHARTS:
@@ -857,7 +850,7 @@ with tab_spread:
             fig_box = build_box(selected_countries, show_pts, YR_FULL)
         show_plot(fig_box, "plot_box")
 
-with tab_matrix:
+if nav == "Matrix":
     with st.container(key="card-matrix"):
         hm_view = st.selectbox("Matrix View", options=HEATMAP_VIEWS, key="hm_view")
         hm_only = st.checkbox("Only selected countries", value=False, key="hm_only")
@@ -871,7 +864,7 @@ with tab_matrix:
             fig_heat = build_heatmap(hm_view, selected_countries, hm_only, YR_FULL)
         show_plot(fig_heat, "plot_heat")
 
-with tab_data:
+if nav == "Data":
     with st.container(key="card-data"):
         d_filt = d_all.rename(columns={"renewable_share_pct": "share_pct", "yoy_change": "yoy_pp", "change_since_base": "since_base_pp", "vs_eu_avg": "gap_to_eu27_pp", "eu_avg_pct": "eu27_pct", "year_rank": "rank"})
         keep = [c for c in ["country", "geo_code", "year", "share_pct", "rank", "yoy_pp", "since_base_pp", "eu27_pct", "gap_to_eu27_pp", "data_flag"] if c in d_filt.columns]
