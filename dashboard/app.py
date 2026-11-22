@@ -143,7 +143,7 @@ def load_dataset():
             df_loaded["is_aggregate"] = df_loaded["geo_code"].astype(str).str.startswith(("EU", "EA"))
         return df_loaded, False
 
-    # Auto-generate renewable_energy_shares.csv on startup if missing (for Cloud compatibility)
+    # Fallback Data Generator for Streamlit Cloud & Offline Environments
     countries = [
         ("Sweden", "SE"), ("Finland", "FI"), ("Latvia", "LV"), ("Denmark", "DK"),
         ("Austria", "AT"), ("Portugal", "PT"), ("Croatia", "HR"), ("Lithuania", "LT"),
@@ -155,7 +155,6 @@ def load_dataset():
     ]
     years = list(range(2015, 2024))
     rows = []
-    # Realistic baseline values based on Eurostat trends
     base_shares = {
         "SE": 53.9, "FI": 39.3, "LV": 37.1, "DK": 32.2, "AT": 33.6, "PT": 30.6,
         "HR": 29.4, "LT": 25.8, "EE": 28.6, "RO": 24.5, "ES": 17.3, "EL": 15.7,
@@ -175,7 +174,6 @@ def load_dataset():
         
     df_generated = pd.DataFrame(rows)
     
-    # Save to data/processed/ so it persists for subsequent interactions
     proc_dir = os.path.join(PROJECT_ROOT, "data", "processed")
     os.makedirs(proc_dir, exist_ok=True)
     out_csv = os.path.join(proc_dir, "renewable_energy_shares.csv")
@@ -184,7 +182,7 @@ def load_dataset():
     except Exception:
         pass
         
-    return df_generated, False
+    return df_generated, True
 
 def fallback_enrich(raw_df):
     non_agg = raw_df[~raw_df["is_aggregate"]].copy().sort_values(["country", "year"])
@@ -298,6 +296,7 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     if target_x is not None and target_x > 0:
         fig.add_vline(x=target_x, line_dash="dot", line_color=APPLE_GREEN, line_width=2.0, annotation_text=target_label, annotation_position="top right")
     
+    # FIXED layout dimensions & margins
     fig.update_layout(
         template="plotly_dark", 
         margin=dict(l=120, r=40, t=50, b=40), 
@@ -379,6 +378,9 @@ with st.sidebar:
 # ----------------------------------------------------------------------------
 # Main Content & Tabs
 # ----------------------------------------------------------------------------
+if IS_DEMO:
+    st.warning("Showing **demo data** because `renewable_energy_shares.csv` was not found in the project folder.")
+
 tab_overview, tab_trends, tab_movers, tab_spread, tab_matrix, tab_data = st.tabs(["Overview", "Trends", "Movers", "Spread & Outliers", "Matrix", "Data"])
 
 with tab_overview:
