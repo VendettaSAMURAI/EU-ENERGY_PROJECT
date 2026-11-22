@@ -155,7 +155,11 @@ st.markdown(f"""
         margin: 0 !important; padding: 6px 18px !important; border-radius: 980px;
         background: transparent; cursor: pointer; transition: background 0.15s ease;
     }}
-    div[class*="st-key-nav"] label > div:first-of-type {{ display: none !important; }}   /* radio circle */
+    div[class*="st-key-nav"] [data-testid="stRadio"], div[class*="st-key-nav"] [data-testid="stElementContainer"] {{ display: flex; justify-content: center; width: 100%; }}
+    div[class*="st-key-nav"] label {{ white-space: nowrap; }}
+    /* hide only the radio circle: anything inside the label that is not the text (and not the input) */
+    div[class*="st-key-nav"] label > *:not(input):not([data-testid="stMarkdownContainer"]):not(:has([data-testid="stMarkdownContainer"])) {{ display: none !important; }}
+    div[class*="st-key-nav"] label [data-testid="stMarkdownContainer"] {{ display: block !important; }}
     div[class*="st-key-nav"] label p {{ color: {APPLE_MUTED} !important; font-size: 13px; font-weight: 500; margin: 0; }}
     div[class*="st-key-nav"] label:hover p {{ color: {APPLE_TEXT} !important; }}
     div[class*="st-key-nav"] label:has(input:checked) {{ background: {APPLE_CARD_ELEVATED}; }}
