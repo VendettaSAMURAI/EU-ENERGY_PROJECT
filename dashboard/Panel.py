@@ -3,24 +3,14 @@ import inspect
 import os
 import shutil
 import socket
-import subprocess
 import sys
 import threading
 import time
 import webbrowser
 from io import StringIO
-
-try:
-    import panel as pn
-except ModuleNotFoundError:
-    subprocess.check_call([
-        sys.executable, "-m", "pip", "install", "--quiet",
-        "panel>=1.4.0", "bokeh>=3.4.0", "plotly>=5.18.0", "pandas>=2.0.0", "numpy>=1.24.0",
-    ])
-    import panel as pn
-
 import numpy as np
 import pandas as pd
+import panel as pn
 import plotly.graph_objects as go
 
 HERE = os.path.dirname(os.path.abspath(__file__))
