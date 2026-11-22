@@ -274,7 +274,16 @@ def build_ranking_bar(year, metric_name, selected, target_pct):
     ))
     if target_x is not None and target_x > 0:
         fig.add_vline(x=target_x, line_dash="dot", line_color=APPLE_GREEN, line_width=2.0, annotation_text=target_label, annotation_position="top right")
-    fig.update_layout(template="plotly_dark", margin=dict(l=120, r=40, t=50, height=820), title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=15, color=APPLE_TEXT), x=0.5, xanchor="center"), xaxis=dict(range=[x_lo, x_hi], showgrid=True, gridcolor="rgba(255,255,255,0.06)"), yaxis=dict(showgrid=False))
+    
+    # FIXED: height is now outside the margin dict to prevent ValueError
+    fig.update_layout(
+        template="plotly_dark", 
+        margin=dict(l=120, r=40, t=50, b=40), 
+        height=820,
+        title=dict(text=f"<b>Country Ranking · {year}</b>", font=dict(size=15, color=APPLE_TEXT), x=0.5, xanchor="center"), 
+        xaxis=dict(range=[x_lo, x_hi], showgrid=True, gridcolor="rgba(255,255,255,0.06)"), 
+        yaxis=dict(showgrid=False)
+    )
     return apply_apple_plotly_theme(fig, uirev=f"ranking-{metric_name}-{year}")
 
 def build_movers_dumbbell(yr_win, selected):
