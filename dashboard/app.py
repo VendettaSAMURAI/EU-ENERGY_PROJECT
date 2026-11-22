@@ -32,6 +32,13 @@ APPLE_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text"
 # Cards are real Streamlit containers (st.container(key="card-...")); Streamlit adds the
 # class "st-key-<key>" to them, which the CSS below styles.
 APPLE_PANEL = "#19191A"
+USE_MODULE_CHARTS = False   # True = use the charts from src/viz for Trends / Spread / Matrix (map always uses the module)
+
+# If the Streamlit theme was not set (no .streamlit/config.toml), Streamlit paints sliders red.
+# In that case recolour them blue with a hue rotation so the app looks right either way.
+_prim = (st.get_option("theme.primaryColor") or "").lower()
+SLIDER_FIX = "[data-testid='stSlider'] { filter: hue-rotate(211deg) saturate(1.1); }" if _prim in ("", "#ff4b4b") else ""
+
 st.markdown(f"""
 <style>
     .stApp {{
@@ -40,18 +47,22 @@ st.markdown(f"""
         font-family: {APPLE_FONT};
         -webkit-font-smoothing: antialiased;
     }}
-    /* ---- top bar with title ---- */
+    /* ---- top bar with title (spans the whole window, over the sidebar too) ---- */
     header[data-testid="stHeader"] {{
+        position: fixed; top: 0; left: 0; right: 0; width: 100%;
         background: #0B0B0C;
         height: 44px;
         border-bottom: 1px solid {APPLE_BORDER};
+        z-index: 999990;
+        pointer-events: none;
     }}
+    header[data-testid="stHeader"] > * {{ pointer-events: auto; }}
     header[data-testid="stHeader"]::after {{
         content: "EU Renewable Energy Observatory";
-        position: absolute; left: 58px; top: 50%; transform: translateY(-50%);
+        position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
         font-size: 14.5px; font-weight: 600; color: {APPLE_TEXT}; pointer-events: none;
     }}
-    [data-testid="stToolbar"], [data-testid="stDecoration"] {{ display: none; }}
+    [data-testid="stToolbar"], [data-testid="stDecoration"] {{ display: none !important; }}
 
     /* ---- sidebar ---- */
     [data-testid="stSidebar"] {{
@@ -62,33 +73,47 @@ st.markdown(f"""
     [data-testid="stSidebarHeader"] {{ height: 44px; min-height: 44px; padding: 0 12px; margin-bottom: 0; }}
     [data-testid="stSidebarUserContent"] {{ padding: 18px 20px 24px 20px; }}
     [data-testid="stSidebar"] hr {{ border-color: {APPLE_BORDER}; margin: 14px 0; }}
-    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {{ font-size: 13px; font-weight: 500; color: {APPLE_TEXT}; }}
     .side-title {{
         font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
         color: {APPLE_MUTED}; margin: 6px 0 10px 0;
     }}
-    .side-label {{ font-size: 13.5px; font-weight: 500; color: {APPLE_TEXT}; margin: 2px 0 -6px 0; }}
+    .side-label {{ font-size: 13.5px; font-weight: 500; color: {APPLE_TEXT}; margin: 2px 0 6px 0; }}
     .side-label b {{ color: {APPLE_BLUE}; font-weight: 500; }}
-    [data-testid="stSliderThumbValue"], [data-testid="stTickBarMin"], [data-testid="stTickBarMax"] {{ display: none; }}
-    [data-testid="stSidebar"] [data-baseweb="select"] > div {{
-        background: {APPLE_CARD}; border: 1px solid {APPLE_BORDER}; border-radius: 10px;
+    [data-testid="stSliderThumbValue"], [data-testid="stTickBarMin"], [data-testid="stTickBarMax"] {{ display: none !important; }}
+    {SLIDER_FIX}
+
+    /* ---- inputs (dark, consistent, never brown/red) ---- */
+    [data-baseweb="select"] > div {{
+        background: {APPLE_CARD_ELEVATED} !important;
+        border: 1px solid {APPLE_BORDER} !important;
+        border-radius: 10px !important;
+        color: {APPLE_TEXT} !important;
     }}
-    [data-testid="stSidebar"] [data-baseweb="tag"] {{
-        background: rgba(10, 132, 255, 0.14); border: 1px solid rgba(10, 132, 255, 0.55);
-        border-radius: 4px; color: {APPLE_BLUE};
-    }}
-    [data-testid="stSidebar"] [data-baseweb="tag"] span {{ color: {APPLE_BLUE}; font-size: 12px; }}
+    [data-testid="stSidebar"] [data-baseweb="select"] > div {{ background: {APPLE_CARD} !important; }}
     [data-testid="stSidebar"] [data-testid="stMultiSelect"] [data-baseweb="select"] > div {{
-        min-height: 132px; align-items: flex-start; border-radius: 12px; background: #1A1A1C;
+        min-height: 132px; align-items: flex-start; border-radius: 12px !important; background: #1A1A1C !important;
+    }}
+    [data-baseweb="tag"] {{
+        background: rgba(10, 132, 255, 0.14) !important;
+        border: 1px solid rgba(10, 132, 255, 0.55) !important;
+        border-radius: 4px !important;
+    }}
+    [data-baseweb="tag"], [data-baseweb="tag"] span, [data-baseweb="tag"] svg {{ color: {APPLE_BLUE} !important; fill: {APPLE_BLUE} !important; }}
+    label[data-baseweb="checkbox"] > span:first-child {{
+        background: {APPLE_CARD_ELEVATED} !important; border: 1px solid rgba(255,255,255,0.28) !important; border-radius: 5px !important;
+    }}
+    label[data-baseweb="checkbox"]:has(input:checked) > span:first-child {{
+        background: {APPLE_BLUE} !important; border-color: {APPLE_BLUE} !important;
     }}
 
     /* ---- buttons ---- */
-    div.stButton > button {{
-        border-radius: 980px;
+    [data-testid="stSidebar"] .stButton, [data-testid="stSidebar"] [data-testid="stButton"] {{ width: 100% !important; }}
+    div.stButton > button, [data-testid="stSidebar"] button[kind] {{
+        border-radius: 980px !important;
         background-color: {APPLE_CARD_ELEVATED};
         color: {APPLE_TEXT};
         border: 1px solid {APPLE_BORDER};
-        width: 100%;
+        width: 100% !important;
         min-height: 32px;
         padding: 2px 10px;
         font-weight: 600;
@@ -100,15 +125,15 @@ st.markdown(f"""
         border-color: rgba(255, 255, 255, 0.25);
         transform: translateY(-1px);
     }}
-    div.stButton > button[kind="primary"],
     div.stDownloadButton > button[kind="primary"],
     .st-key-btn_leaders button {{
-        background-color: {APPLE_BLUE}; color: #FFFFFF; border-color: {APPLE_BLUE};
+        background-color: {APPLE_BLUE} !important; color: #FFFFFF !important; border-color: {APPLE_BLUE} !important;
     }}
     .st-key-btn_movers button {{
-        background-color: rgba(48, 209, 88, 0.08); color: {APPLE_GREEN};
-        border-color: rgba(48, 209, 88, 0.45);
+        background-color: rgba(48, 209, 88, 0.08) !important; color: {APPLE_GREEN} !important;
+        border-color: rgba(48, 209, 88, 0.45) !important;
     }}
+    .st-key-btn_movers button p {{ color: {APPLE_GREEN} !important; }}
 
     /* ---- main panel ---- */
     [data-testid="stMainBlockContainer"], .block-container {{
@@ -118,30 +143,34 @@ st.markdown(f"""
         padding: 16px 16px 40px 16px !important;
         border-radius: 4px;
     }}
-    .stTabs [data-baseweb="tab-list"] {{
+    [data-baseweb="tab-list"] {{
         gap: 8px;
-        background-color: {APPLE_CARD};
+        background-color: {APPLE_CARD} !important;
         padding: 6px;
         border-radius: 980px;
         border: 1px solid {APPLE_BORDER};
         margin: 0 auto 20px auto;
-        width: fit-content;
+        width: fit-content !important;
         justify-content: center;
     }}
-    .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] {{ display: none; }}
-    .stTabs [data-baseweb="tab"] {{
-        border-radius: 980px;
-        color: {APPLE_MUTED};
+    [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {{ display: none !important; }}
+    button[data-baseweb="tab"] {{
+        border-radius: 980px !important;
+        color: {APPLE_MUTED} !important;
         font-weight: 500;
-        font-size: 13px;
         padding: 6px 18px;
         height: auto;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
     }}
-    .stTabs [aria-selected="true"] {{
+    button[data-baseweb="tab"] p {{ font-size: 13px; }}
+    button[data-baseweb="tab"][aria-selected="true"] {{
         background-color: {APPLE_CARD_ELEVATED} !important;
         color: {APPLE_TEXT} !important;
         font-weight: 600;
     }}
+    button[data-baseweb="tab"][aria-selected="true"] p {{ color: {APPLE_TEXT} !important; }}
     div[class*="st-key-card-"] {{
         background: {APPLE_CARD} !important;
         border: 1px solid {APPLE_BORDER};
@@ -184,11 +213,13 @@ def load_viz_module(mod_name, filename):
     spec.loader.exec_module(module)
     return module
 
+hmap = mtrend = obox = None
 try:
     cmap = load_viz_module("choropleth_map", "choropleth_map.py")
-    hmap = load_viz_module("heatmap_matrix", "Heatmap matrix.py")
-    mtrend = load_viz_module("multitrend_list_chart", "multitrend list chart.py")
-    obox = load_viz_module("outlier_box_plot", "Outlier box plot.py")
+    if USE_MODULE_CHARTS:
+        hmap = load_viz_module("heatmap_matrix", "Heatmap matrix.py")
+        mtrend = load_viz_module("multitrend_list_chart", "multitrend list chart.py")
+        obox = load_viz_module("outlier_box_plot", "Outlier box plot.py")
 except Exception as exc:
     st.error(f"Could not load the visualization modules from `{VIZ_DIR}`: {exc}")
     st.stop()
@@ -305,8 +336,12 @@ MAP_METRICS = getattr(cmap, "MAP_METRICS", {
     "Change Since Base (pp)": {"col": "change_since_base", "suffix": " pp"},
     "Gap vs EU-27 (pp)": {"col": "vs_eu_avg", "suffix": " pp"},
 })
-TREND_MODES = getattr(mtrend, "TREND_MODES", ["Absolute Share (%)", "Indexed (Base = 100)", "YoY Change (pp)"])
-HEATMAP_VIEWS = getattr(hmap, "HEATMAP_VIEWS", ["Renewable Share (%)", "YoY Change (pp)", "Gap vs EU-27 (pp)"])
+if USE_MODULE_CHARTS:
+    TREND_MODES = getattr(mtrend, "TREND_MODES", ["Absolute Share (%)", "Indexed (Base = 100)", "YoY Change (pp)"])
+    HEATMAP_VIEWS = getattr(hmap, "HEATMAP_VIEWS", ["Renewable Share (%)", "YoY Change (pp)", "Gap vs EU-27 (pp)"])
+else:
+    TREND_MODES = ["Absolute Share (%)", "Indexed (Base = 100)", "YoY Change (pp)"]
+    HEATMAP_VIEWS = ["Renewable Share (%)", "YoY Change (pp)", "Change Since Base (pp)", "Gap vs EU-27 (pp)"]
 
 COUNTRIES = sorted(d_all["country"].dropna().unique())
 DATA_YEARS = sorted(int(y) for y in d_all["year"].dropna().unique())
@@ -451,16 +486,175 @@ def build_movers_dumbbell(yr_win, selected):
     mdf["delta"] = mdf["v1"] - mdf["v0"]
     mdf = mdf.sort_values("delta", ascending=True).reset_index()
     sel_set = set(selected or [])
+    order = list(mdf["country"])
     fig = go.Figure()
     for _, r in mdf.iterrows():
         c = r["country"]
         is_sel = c in sel_set
         line_col = APPLE_AMBER if is_sel else (APPLE_GREEN if r["delta"] >= 0 else APPLE_RED)
         fig.add_trace(go.Scatter(x=[r["v0"], r["v1"]], y=[c, c], mode="lines", line=dict(color=line_col, width=3.8 if is_sel else 2.0), showlegend=False, hoverinfo="skip"))
-    fig.add_trace(go.Scatter(x=mdf["v0"], y=mdf["country"], mode="markers", name=f"Start ({start_yr})", marker=dict(size=9, color=APPLE_CARD, line=dict(color="#8E8E93", width=2.2))))
-    fig.add_trace(go.Scatter(x=mdf["v1"], y=mdf["country"], mode="markers+text", name=f"End ({end_yr})", text=[f" {d:+.1f} pp" for d in mdf["delta"]], textposition="middle right", textfont=dict(size=11, color="#E5E5EA"), marker=dict(size=11, color=[APPLE_AMBER if c in sel_set else APPLE_BLUE for c in mdf["country"]])))
-    fig.update_layout(template="plotly_dark", margin=dict(l=130, r=60, t=60, b=50), title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5), xaxis=dict(title="Renewable Share (%)", ticksuffix="%"), yaxis=dict(showgrid=False), height=650)
+    fig.add_trace(go.Scatter(x=mdf["v0"], y=mdf["country"], mode="markers", name=f"Start ({start_yr})", cliponaxis=False,
+                             marker=dict(size=9, color=APPLE_CARD, line=dict(color="#8E8E93", width=2.2)),
+                             hovertemplate="<b>%{y}</b><br>Start: %{x:.1f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(x=mdf["v1"], y=mdf["country"], mode="markers+text", name=f"End ({end_yr})", cliponaxis=False,
+                             text=[f" {d:+.1f} pp" for d in mdf["delta"]], textposition="middle right", textfont=dict(size=11, color="#E5E5EA"),
+                             marker=dict(size=11, color=[APPLE_AMBER if c in sel_set else APPLE_BLUE for c in mdf["country"]]),
+                             hovertemplate="<b>%{y}</b><br>End: %{x:.1f}%<extra></extra>"))
+    lo = float(min(mdf["v0"].min(), mdf["v1"].min()))
+    hi = float(max(mdf["v0"].max(), mdf["v1"].max()))
+    fig.update_layout(
+        template="plotly_dark", margin=dict(l=150, r=40, t=90, b=60),
+        title=dict(text=f"<b>Net Trajectory ({start_yr}–{end_yr})</b>", font=dict(size=16, color=APPLE_TEXT), x=0.5, xanchor="center"),
+        xaxis=dict(title="Renewable Share (%)", ticksuffix="%", range=[max(0, lo - 4), hi + 9], showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
+        yaxis=dict(type="category", categoryorder="array", categoryarray=order, tickmode="linear", dtick=1, showgrid=False, automargin=True),
+        legend=dict(orientation="h", x=0.5, xanchor="center", y=1.04, yanchor="bottom", bgcolor="rgba(0,0,0,0)"),
+        height=max(650, 24 * len(order) + 170),
+    )
     return apply_apple_plotly_theme(fig, uirev=f"movers-{start_yr}-{end_yr}")
+
+# ---- native chart builders for Trends / Matrix / Spread (driven by the Streamlit controls) ----
+PALETTE = ["#0A84FF", "#30D158", "#FFD60A", "#FF453A", "#BF5AF2", "#64D2FF", "#FF9F0A", "#AC8E68", "#5E5CE6", "#FF375F"]
+
+def _share_pivot():
+    """rows = year, columns = country (aggregates excluded)."""
+    return d_all.pivot_table(index="year", columns="country", values="renewable_share_pct", aggfunc="mean").sort_index()
+
+def _eu_series():
+    if "eu_avg_pct" in d_all.columns:
+        s = d_all.groupby("year")["eu_avg_pct"].first().dropna()
+        if not s.empty:
+            return s.sort_index()
+    eu = df[df["geo_code"].astype(str).str.startswith("EU27")]
+    return eu.groupby("year")["renewable_share_pct"].mean().sort_index()
+
+def _chart_title(main, sub=None):
+    t = f"<b>{main}</b>"
+    if sub:
+        t += f"<br><span style='font-size:12px;color:{APPLE_MUTED};font-weight:400;'>{sub}</span>"
+    return dict(text=t, x=0.5, xanchor="center", font=dict(size=18, color=APPLE_TEXT))
+
+def build_trend(mode, selected, show_eu, show_target, target_pct, yr_win):
+    p = _share_pivot()
+    p = p[(p.index >= yr_win[0]) & (p.index <= yr_win[1])]
+    eu = _eu_series().reindex(p.index)
+    if p.empty:
+        return error_fig("No data available for the chosen years.")
+    m = mode.lower()
+    if "index" in m:
+        kind, ytitle = "index", "Index (first year = 100)"
+        tf = lambda x: x.div(x.bfill().iloc[0]) * 100
+    elif "yoy" in m or "year" in m:
+        kind, ytitle = "yoy", "Year-over-year change (pp)"
+        tf = lambda x: x.diff()
+    else:
+        kind, ytitle = "abs", "Renewable share (%)"
+        tf = lambda x: x
+    latest = p.ffill().iloc[-1].sort_values(ascending=False)
+    chosen = [c for c in (selected or []) if c in p.columns]
+    note = f"{len(chosen)} selected countries"
+    if not chosen:
+        chosen = list(latest.head(10).index)
+        note = "no countries selected · showing the top 10 by latest share"
+    chosen = [c for c in latest.index if c in chosen]          # ranked by latest share
+    tp = tf(p)
+    fig = go.Figure()
+    for i, c in enumerate(chosen):
+        fig.add_trace(go.Scatter(
+            x=tp.index, y=tp[c], mode="lines+markers", name=f"#{list(latest.index).index(c) + 1} {c}",
+            line=dict(color=PALETTE[i % len(PALETTE)], width=2.4), marker=dict(size=5),
+            hovertemplate=f"<b>{c}</b> (%{{x}})<br>%{{y:.2f}}<extra></extra>",
+        ))
+    if show_eu and not eu.dropna().empty:
+        te = tf(eu.to_frame("eu"))["eu"]
+        fig.add_trace(go.Scatter(x=te.index, y=te, mode="lines", name="EU-27 average",
+                                 line=dict(color="#FFFFFF", width=2.4, dash="dash"),
+                                 hovertemplate="<b>EU-27 average</b> (%{x})<br>%{y:.2f}<extra></extra>"))
+    if show_target and kind == "abs" and target_pct > 0:
+        fig.add_hline(y=target_pct, line_dash="dot", line_color=APPLE_GREEN, line_width=2,
+                      annotation_text=f"Policy Target ({target_pct}%)", annotation_font_color=APPLE_GREEN)
+    if kind == "yoy":
+        fig.add_hline(y=0, line_color="rgba(255,255,255,0.25)", line_width=1)
+    fig.update_layout(
+        template="plotly_dark", height=600, margin=dict(l=70, r=30, t=95, b=60),
+        title=_chart_title("RENEWABLE SHARE · TRENDS BY COUNTRY", f"{note} · click a legend entry to hide it, double-click to isolate"),
+        xaxis=dict(title="Year", dtick=1, showgrid=False),
+        yaxis=dict(title=ytitle, ticksuffix="%" if kind == "abs" else "", showgrid=True, gridcolor="rgba(255,255,255,0.06)", rangemode="normal" if kind != "abs" else "tozero"),
+        legend=dict(bgcolor="#0B1426", bordercolor="rgba(10,132,255,0.45)", borderwidth=1, font=dict(size=11)),
+    )
+    return apply_apple_plotly_theme(fig, uirev=f"trend-{mode}")
+
+def build_heatmap(view, selected, only_selected, yr_win):
+    p = _share_pivot()
+    p = p[(p.index >= yr_win[0]) & (p.index <= yr_win[1])]
+    if p.empty:
+        return error_fig("No data available for the chosen years.")
+    latest = p.ffill().iloc[-1].sort_values(ascending=False)
+    v = view.lower()
+    if "yoy" in v or "year" in v:
+        z, cbar, fmt, diverging = p.diff(), "YoY (pp)", ".1f", True
+    elif "gap" in v:
+        z, cbar, fmt, diverging = p.sub(_eu_series().reindex(p.index), axis=0), "Gap vs EU-27 (pp)", ".1f", True
+    elif "change" in v or "base" in v:
+        z, cbar, fmt, diverging = p - p.bfill().iloc[0], f"Change since {int(p.index[0])} (pp)", ".1f", True
+    else:
+        z, cbar, fmt, diverging = p, "Share (%)", ".0f", False
+    countries = list(latest.index)
+    if only_selected:
+        countries = [c for c in countries if c in set(selected or [])]
+        if not countries:
+            return error_fig("Select at least one country to use “Only selected countries”.")
+    z = z[countries].T
+    sel_set = set(selected or [])
+    labels = [f"<b>{c}</b>" if c in sel_set else c for c in countries]
+    colorscale = [[0, "#FF453A"], [0.5, "#2C2C2E"], [1, "#30D158"]] if diverging else "Viridis"
+    hm = go.Heatmap(
+        z=z.values, x=[str(int(y)) for y in z.columns], y=labels, colorscale=colorscale,
+        xgap=1, ygap=1, texttemplate=f"%{{z:{fmt}}}", textfont=dict(size=10, color="#FFFFFF"),
+        hovertemplate="<b>%{y}</b> (%{x})<br>" + cbar + ": %{z:.2f}<extra></extra>",
+        colorbar=dict(title=dict(text=cbar, font=dict(size=13)), bgcolor="#0B1426", bordercolor="rgba(10,132,255,0.45)", borderwidth=1, thickness=14, len=0.6),
+        **({"zmid": 0} if diverging else {}),
+    )
+    fig = go.Figure(hm)
+    fig.update_layout(
+        template="plotly_dark", height=max(520, 21 * len(countries) + 170), margin=dict(l=160, r=30, t=100, b=30),
+        title=_chart_title("RENEWABLE ENERGY SHARE · MATRIX", "Countries ranked by latest share · blank cell = not reported"),
+        xaxis=dict(side="top", type="category", showgrid=False),
+        yaxis=dict(autorange="reversed", type="category", tickmode="linear", dtick=1, showgrid=False, automargin=True),
+    )
+    return apply_apple_plotly_theme(fig, uirev=f"heat-{view}-{only_selected}")
+
+def build_box(selected, show_all, yr_win):
+    sub = d_all[d_all["renewable_share_pct"].notna() & d_all["year"].between(yr_win[0], yr_win[1])]
+    if sub.empty:
+        return error_fig("No data available for the chosen years.")
+    fig = go.Figure()
+    years = sorted(int(y) for y in sub["year"].unique())
+    for y in years:
+        g = sub[sub["year"] == y]
+        fig.add_trace(go.Box(
+            y=g["renewable_share_pct"], name=str(y), text=g["country"],
+            boxpoints="all" if show_all else "outliers", jitter=0.45, pointpos=0,
+            line=dict(color=APPLE_BLUE, width=1.6), fillcolor="rgba(10,132,255,0.18)",
+            marker=dict(color="#8E8E93", size=5, opacity=0.7, outliercolor=APPLE_RED),
+            hovertemplate="<b>%{text}</b><br>%{y:.1f}%<extra>" + str(y) + "</extra>", showlegend=False,
+        ))
+    for i, c in enumerate(selected or []):
+        g = sub[sub["country"] == c].sort_values("year")
+        if g.empty:
+            continue
+        fig.add_trace(go.Scatter(
+            x=[str(int(y)) for y in g["year"]], y=g["renewable_share_pct"], mode="lines+markers", name=c,
+            line=dict(color=PALETTE[(i + 2) % len(PALETTE)], width=2), marker=dict(size=8, line=dict(color="#000", width=1)),
+            hovertemplate=f"<b>{c}</b> (%{{x}})<br>%{{y:.1f}}%<extra></extra>",
+        ))
+    fig.update_layout(
+        template="plotly_dark", height=600, margin=dict(l=70, r=30, t=95, b=60),
+        title=_chart_title("RENEWABLE SHARE · DISTRIBUTION & OUTLIERS BY YEAR", "box = middle 50% of countries · dots beyond the whiskers are outliers · selected countries drawn as lines"),
+        xaxis=dict(type="category", title="Year", showgrid=False),
+        yaxis=dict(title="Renewable share (%)", ticksuffix="%", showgrid=True, gridcolor="rgba(255,255,255,0.06)"),
+        legend=dict(bgcolor="#0B1426", bordercolor="rgba(10,132,255,0.45)", borderwidth=1),
+    )
+    return apply_apple_plotly_theme(fig, uirev="box-dist")
 
 def country_stats_table(selected, yr_win, target_pct):
     sub = d_all[
@@ -582,13 +776,16 @@ with tab_trends:
         s_eu = c1.checkbox("Show EU-27 average line", value=True, key="show_eu")
         s_tgt = c2.checkbox("Show Policy Target line", value=True, key="show_tgt")
 
-        fig_trend = safe_viz(
-            mtrend.create_multitrend, df, "Trend chart", 600,
-            uirev=f"trend-{t_mode}", selected_countries=selected_countries, trend_mode=t_mode,
-            year_range=YR_FULL, show_eu=s_eu, include_controls=False,
-        )
-        if s_tgt and "Absolute" in t_mode and target_val > 0:
-            fig_trend.add_hline(y=target_val, line_dash="dot", line_color=APPLE_GREEN, annotation_text=f"Policy Target ({target_val}%)")
+        if USE_MODULE_CHARTS:
+            fig_trend = safe_viz(
+                mtrend.create_multitrend, df, "Trend chart", 600,
+                uirev=f"trend-{t_mode}", selected_countries=selected_countries, trend_mode=t_mode,
+                year_range=YR_FULL, show_eu=s_eu, include_controls=False,
+            )
+            if s_tgt and "Absolute" in t_mode and target_val > 0:
+                fig_trend.add_hline(y=target_val, line_dash="dot", line_color=APPLE_GREEN, annotation_text=f"Policy Target ({target_val}%)")
+        else:
+            fig_trend = build_trend(t_mode, selected_countries, s_eu, s_tgt, target_val, YR_FULL)
         show_plot(fig_trend, "plot_trend")
 
     with st.container(key="card-summary"):
@@ -604,22 +801,28 @@ with tab_movers:
 with tab_spread:
     with st.container(key="card-spread"):
         show_pts = st.checkbox("Show all countries as dots", value=True, key="show_pts")
-        fig_box = safe_viz(
-            obox.create_outlier_box, df, "Outlier box plot", 600,
-            uirev="box-dist", year_range=YR_FULL, selected_countries=selected_countries,
-            show_all_points=show_pts, include_controls=False,
-        )
+        if USE_MODULE_CHARTS:
+            fig_box = safe_viz(
+                obox.create_outlier_box, df, "Outlier box plot", 600,
+                uirev="box-dist", year_range=YR_FULL, selected_countries=selected_countries,
+                show_all_points=show_pts, include_controls=False,
+            )
+        else:
+            fig_box = build_box(selected_countries, show_pts, YR_FULL)
         show_plot(fig_box, "plot_box")
 
 with tab_matrix:
     with st.container(key="card-matrix"):
         hm_view = st.selectbox("Matrix View", options=HEATMAP_VIEWS, key="hm_view")
         hm_only = st.checkbox("Only selected countries", value=False, key="hm_only")
-        fig_heat = safe_viz(
-            hmap.create_heatmap, df, "Heatmap", 650,
-            uirev=f"heat-{hm_view}", default_view=hm_view, year_range=YR_FULL,
-            selected_countries=selected_countries, only_selected=hm_only, include_controls=False,
-        )
+        if USE_MODULE_CHARTS:
+            fig_heat = safe_viz(
+                hmap.create_heatmap, df, "Heatmap", 650,
+                uirev=f"heat-{hm_view}", default_view=hm_view, year_range=YR_FULL,
+                selected_countries=selected_countries, only_selected=hm_only, include_controls=False,
+            )
+        else:
+            fig_heat = build_heatmap(hm_view, selected_countries, hm_only, YR_FULL)
         show_plot(fig_heat, "plot_heat")
 
 with tab_data:
