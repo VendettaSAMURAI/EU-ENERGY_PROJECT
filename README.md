@@ -80,6 +80,8 @@ Launch the interactive local Panel server:
 
 Bash
 panel serve dashboard/app.py --show
+OR 
+https://eu-energyproject-mebwy7ytsuxk4jjtia9rca.streamlit.app/ FOLLOW LINK
 ---
 
 ## Project Structure
