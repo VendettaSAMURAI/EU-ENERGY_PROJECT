@@ -3,14 +3,24 @@ import inspect
 import os
 import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
 import webbrowser
 from io import StringIO
+
+try:
+    import panel as pn
+except ModuleNotFoundError:
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "--quiet",
+        "panel>=1.4.0", "bokeh>=3.4.0", "plotly>=5.18.0", "pandas>=2.0.0", "numpy>=1.24.0",
+    ])
+    import panel as pn
+
 import numpy as np
 import pandas as pd
-import panel as pn
 import plotly.graph_objects as go
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -965,7 +975,6 @@ if is_running_in_streamlit():
         initial_sidebar_state="collapsed",
     )
 
-    # Remove Streamlit padding/header so the full Panel dashboard fills the screen
     st.markdown(
         """
         <style>
@@ -977,34 +986,14 @@ if is_running_in_streamlit():
         unsafe_allow_html=True,
     )
 
-    @st.cache_resource
-    def start_background_panel_server():
-        port = find_free_port(5006)
-        ready = threading.Event()
+    @st.cache_data(show_spinner="Rendering EU Renewable Energy Observatory...")
+    def render_embedded_panel_html():
+        buf = StringIO()
+        dash = build_dashboard()
+        dash.save(buf, embed=True)
+        return buf.getvalue()
 
-        def _serve():
-            pn.serve(
-                build_dashboard,
-                port=port,
-                address="0.0.0.0",
-                show=False,
-                title="EU Renewable Energy Observatory",
-                websocket_origin=["*"],
-                start=True,
-            )
-
-        t = threading.Thread(target=_serve, daemon=True)
-        t.start()
-        for _ in range(40):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                if s.connect_ex(("127.0.0.1", port)) == 0:
-                    ready.set()
-                    break
-            time.sleep(0.25)
-        return port
-
-    panel_port = start_background_panel_server()
-    components.iframe(f"http://localhost:{panel_port}", height=1020, scrolling=True)
+    components.html(render_embedded_panel_html(), height=1050, scrolling=True)
 
 elif __name__ == "__main__":
     PORT = find_free_port(5006)
@@ -1020,5 +1009,4 @@ elif __name__ == "__main__":
         websocket_origin=[f"localhost:{PORT}", f"127.0.0.1:{PORT}"],
     )
 else:
-    # Support `panel serve dashboard/Panel.py`
     build_dashboard().servable()
